@@ -48,7 +48,8 @@ class PixivSpider(object):
         self.works_of_a_page_num = 20
         self.works_params = {'type': 'all', 'p': None}
         self.file_type = '.png'
-        self.dirname = None
+        self.dir_name = None
+        self.artist_id = None
 
     def get_post_key(self):
         login_url = 'https://accounts.pixiv.net/login'
@@ -61,11 +62,15 @@ class PixivSpider(object):
             pickle.dump(self.session.cookies, f)
 
     def get_cookies(self):
-        with open('cookies', mode='rb') as f:
-            self.session.cookies = pickle.load(f)
+        try:
+            with open('cookies', mode='rb') as f:
+                self.session.cookies = pickle.load(f)
+        except FileNotFoundError:
+            print('cookies文件不存在,开始进行模拟登陆...')
+            self.login_enter()
 
     def save_work(self, filename, real_img):
-        file_path = self.dirname + '\\' + filename + self.file_type
+        file_path = self.dir_name + '\\' + filename + self.file_type
         if os.path.isfile(file_path):  # 验证文件是否存在
             print('文件已经存在')
         else:
@@ -73,11 +78,19 @@ class PixivSpider(object):
                 q.write(real_img.content)
                 print('{}图片存储完成'.format(filename + self.file_type))
 
-    def mkdir(self):
-        if os.path.isdir(self.dirname):
+    def create_folder(self):
+        """创建文件夹"""
+        if os.path.isdir(self.dir_name):
             pass
         else:
-            os.mkdir(self.dirname)
+            os.mkdir(self.dir_name)
+
+    def format_conversion(self):
+        """"转换文件格式"""
+        if self.file_type == '.png':
+            self.file_type = '.jpg'
+        elif self.file_type == '.jpg':
+            self.file_type = '.png'
 
     def login(self, pixiv_id, password):
         post_url = 'https://accounts.pixiv.net/api/login?lang=zh'
@@ -108,14 +121,22 @@ class PixivSpider(object):
             print('模拟登陆失败...')
             return False
 
-    def get_artist_work(self, artist_id, number=10):
-        list_of_works = self.session.get(self.list_of_works_mode.format(artist_id))
+    def artist_id_enter(self):
+        while True:
+            try:
+                self.artist_id = int(input('请输入画师ID: '))
+                return True
+            except ValueError:
+                print('请输入正确的画师ID...')
+
+    def get_artist_work(self, number=10):
+        list_of_works = self.session.get(self.list_of_works_mode.format(self.artist_id))
         selector = etree.HTML(list_of_works.text)
         user_name = selector.xpath('//a[@class="user-name"]/text()')[0]
-        self.dirname = user_name + ' ' + artist_id
-        self.mkdir()
+        self.dir_name = user_name + ' ' + self.artist_id
+        self.create_folder()
 
-        ''' 通过作品总数计算页数 '''
+        """ 通过作品总数计算页数 """
         # 现在有BUG, 如果该作者没有作品...就很GG
         work_num = selector.xpath('//span[@class="count-badge"]/text()')[0]
         print('该用户有{}作品...'.format(work_num))
@@ -126,15 +147,16 @@ class PixivSpider(object):
         self.works_of_page(selector=selector)  # 下载第一页的内容
 
         if page_num >= 2:
-            for each_page in range(2, int(page_num+1)):
+            for each_page in range(2, int(page_num + 1)):
                 self.works_params['p'] = each_page
-                list_of_works = self.session.get(self.list_of_works_mode.format(artist_id), params=self.works_params)
+                list_of_works = self.session.get(self.list_of_works_mode.format(self.artist_id),
+                                                 params=self.works_params)
                 selector = etree.HTML(list_of_works.text)
                 self.works_of_page(selector=selector)
 
-# https://i.pximg.net/c/150x150/img-master/img/2017/08/31/13/35/28/64711378_p0_master1200.jpg
-# https://i.pximg.net/img-original/img/2017/08/31/13/35/28/64711378_p0.jpg
-# https://i.pximg.net/img-original/img/2017/09/06/00/12/53/64809736_p0.png
+            # https://i.pximg.net/c/150x150/img-master/img/2017/08/31/13/35/28/64711378_p0_master1200.jpg
+            # https://i.pximg.net/img-original/img/2017/08/31/13/35/28/64711378_p0.jpg
+            # https://i.pximg.net/img-original/img/2017/09/06/00/12/53/64809736_p0.png
 
     def works_of_page(self, selector):
         """对单页的作品进行处理"""
@@ -145,7 +167,7 @@ class PixivSpider(object):
             filename = item.split('/')[-1].replace('_master1200.jpg', '')  # 取出url中的作品文件名
             print('filename = ', filename)
             self.headers_original_img['referer'].format(id_str)  # 修改session的headers
-            work_img_url = self.after_str_mode.format(date=date_str, filename=filename+self.file_type)  # 拼接出真正的url
+            work_img_url = self.after_str_mode.format(date=date_str, filename=filename + self.file_type)  # 拼接出真正的url
             real_img = self.session.get(work_img_url, headers=self.headers_original_img)
             print(work_img_url)  # 打印出图片原始页面
             if real_img.status_code == 200:
@@ -154,7 +176,7 @@ class PixivSpider(object):
             else:
                 print('访问页面失败...')
                 print('转化文件格式类型,再次访问...')
-                self.file_type = '.jpg'
+                self.format_conversion()
                 work_img_url = self.after_str_mode.format(date=date_str, filename=filename + self.file_type)
                 real_img = self.session.get(work_img_url, headers=self.headers_original_img)
                 print(work_img_url)
@@ -169,22 +191,17 @@ class PixivSpider(object):
 
 if __name__ == '__main__':
     pixiv_spider = PixivSpider()
-    try:
-        pixiv_spider.get_cookies()
+    pixiv_spider.get_cookies()
 
-        if pixiv_spider.already_login():
-            print('用户已登录')
-            artist_id = input('请输入画师ID: ')
-            pixiv_spider.get_artist_work(artist_id)
+    if pixiv_spider.already_login():
+        print('用户已登录')
+        if pixiv_spider.artist_id_enter():
+            pixiv_spider.get_artist_work()
+    else:
+        print('cookies已失效...')
+        if pixiv_spider.login_enter():
+            if pixiv_spider.artist_id_enter():
+                pixiv_spider.get_artist_work()
         else:
-            print('cookies已失效...')
-            if pixiv_spider.login_enter():
-                artist_id = input('请输入画师ID: ')
-                pixiv_spider.get_artist_work(artist_id)
-            else:
-                print('帐号密码错误...')
-    except FileNotFoundError:
-        pixiv_spider.login_enter()
-        artist_id = input('请输入画师ID: ')
-        pixiv_spider.get_artist_work(artist_id)
+            print('帐号密码错误...')
 
