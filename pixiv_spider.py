@@ -133,7 +133,7 @@ class PixivSpider(object):
         list_of_works = self.session.get(self.list_of_works_mode.format(self.artist_id))
         selector = etree.HTML(list_of_works.text)
         user_name = selector.xpath('//a[@class="user-name"]/text()')[0]
-        self.dir_name = user_name + ' ' + self.artist_id
+        self.dir_name = user_name + ' ' + str(self.artist_id)
         self.create_folder()
 
         """ 通过作品总数计算页数 """
@@ -204,4 +204,3 @@ if __name__ == '__main__':
                 pixiv_spider.get_artist_work()
         else:
             print('帐号密码错误...')
-
