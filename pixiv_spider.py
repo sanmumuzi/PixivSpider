@@ -50,6 +50,8 @@ class PixivSpider(object):
         self.file_type = '.png'
         self.dir_name = None
         self.artist_id = None
+        self.port = 1080
+        self.interval = 10
 
     def get_post_key(self):
         login_url = 'https://accounts.pixiv.net/login'
@@ -86,16 +88,18 @@ class PixivSpider(object):
             os.mkdir(self.dir_name)
 
     def format_conversion(self):
-        """"转换文件格式"""
+        """转换文件格式"""
         if self.file_type == '.png':
             self.file_type = '.jpg'
         elif self.file_type == '.jpg':
             self.file_type = '.png'
 
     def login(self, pixiv_id, password):
+        """login function"""
         post_url = 'https://accounts.pixiv.net/api/login?lang=zh'
         self.form_data['pixiv_id'] = pixiv_id
         self.form_data['password'] = password
+
         self.get_post_key()
         result = self.session.post(post_url, data=self.form_data).status_code
         if result == 200:
@@ -103,6 +107,22 @@ class PixivSpider(object):
             return True
         else:
             return False
+
+    def enter_port_and_interval(self):
+        port = input('Please enter your ss/ssr local listen port(default 1080): ')
+        if port:
+            self.port = port
+        self.session.proxies = {
+            'http': 'socks5h://127.0.0.1:{}'.format(self.port),
+            'https': 'socks5h://127.0.0.1:{}'.format(self.port)
+        }
+        interval = input('Please enter the time interval for get the picture(default 10): ')
+        while interval:
+            if float(interval) >= 3:
+                self.interval = float(interval)
+                break
+            else:
+                interval = float(input('interval should >= 3: '))
 
     def already_login(self):
         status = self.session.post(self.setting_url, allow_redirects=False).status_code
@@ -186,12 +206,13 @@ class PixivSpider(object):
                 else:
                     print('访问页面失败...')
 
-            sleep(10)  # 图片爬取间隔....
+            sleep(self.interval)  # 图片爬取间隔....
 
 
 if __name__ == '__main__':
     pixiv_spider = PixivSpider()
     pixiv_spider.get_cookies()
+    pixiv_spider.enter_port_and_interval()
 
     if pixiv_spider.already_login():
         print('用户已登录')

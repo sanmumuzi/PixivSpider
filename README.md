@@ -11,10 +11,16 @@
 
 **最终处理方法**:选用思路中的第二种方法
 
-###2017.09.18更新
+### 2017.09.18更新
 
 修复了格式转换的bug,并将其包装成函数.
 
 将部分单独代码包装成函数.
 
 **暂停使用**:P站于今日出现问题,貌似被qiang,重新开放后继续更新代码.
+
+### 2017.10.25 Update
+
+Because DNS contamination, we can only use a l_a_d_d_e_r.
+
+Use ssr by requests\[socks\].
