@@ -24,3 +24,8 @@
 Because DNS contamination, we can only use a l_a_d_d_e_r.
 
 Use ssr by requests\[socks\].
+
+### 2017.10.26 Update
+
+Added download log file to avoid duplication of downloads.
+Increase the download interval option.
