@@ -3,6 +3,6 @@ __pycache__
 *.png
 *.jpg
 cookies*
-*.txt
+.txt
 artist_work
 venv
