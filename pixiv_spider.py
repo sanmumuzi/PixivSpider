@@ -248,8 +248,9 @@ def exit_pixiv_spider():
 
 
 if __name__ == '__main__':
-    pixiv_spider = _PixivSpider()
-    pixiv_spider.main_control()
+    # pixiv_spider = _PixivSpider()
+    # pixiv_spider.main_control()
+    pass
 
 # duan dian download
 # qu chong

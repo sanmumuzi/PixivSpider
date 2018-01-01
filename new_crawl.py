@@ -11,7 +11,13 @@ from time import sleep
 from lxml import etree
 from collections import deque
 
-__all__ = ["Pixiv",]
+__all__ = ['Pixiv', 'get_work_of_painter']
+
+
+def get_work_of_painter(username=None, password=None, *, painter_id):
+    pixiv = Pixiv()
+    pixiv.login(username, password)
+    pixiv.get_work_of_painter(painter_id)
 
 
 class Pixiv(requests.Session):
