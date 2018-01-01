@@ -4,3 +4,5 @@ __pycache__
 *.jpg
 cookies*
 *.txt
+artist_work
+venv

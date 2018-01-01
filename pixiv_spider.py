@@ -9,9 +9,9 @@ import os
 import atexit
 
 
-class PixivSpider(object):
+class _PixivSpider(object):
     def __init__(self):
-        self.session = requests.session()
+        self.session = requests.Session()
         self.login_url = 'https://accounts.pixiv.net/login'
         self.post_url = 'https://accounts.pixiv.net/api/login?lang=zh'
         self.setting_url = 'https://www.pixiv.net/setting_profile.php'
@@ -248,7 +248,7 @@ def exit_pixiv_spider():
 
 
 if __name__ == '__main__':
-    pixiv_spider = PixivSpider()
+    pixiv_spider = _PixivSpider()
     pixiv_spider.main_control()
 
 # duan dian download

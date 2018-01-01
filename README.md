@@ -29,3 +29,12 @@ Use ssr by requests\[socks\].
 
 Added download log file to avoid duplication of downloads.
 Increase the download interval option.
+
+### 2018.1.1 Update
+
+Rebuild code.
+
+Use new_crawl.py now.
+
+Only to achieve the most basic functions.
+
