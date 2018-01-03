@@ -1,20 +1,19 @@
-import logging
 import requests
 import sys
 import os
 import atexit
-import argparse
+import logging
 import math
 from http import cookiejar
-from setting import re_tuple, url_tuple, User_Agent, form_data, COOKIE_FILE, work_num_of_each_page, save_folder
-from time import sleep
 from lxml import etree
 from collections import deque
+
+from setting import re_tuple, url_tuple, User_Agent, form_data, COOKIE_FILE, work_num_of_each_page, save_folder
 
 __all__ = ['Pixiv', 'get_work_of_painter']
 
 
-def get_work_of_painter(username=None, password=None, *, painter_id):
+def get_work_of_painter(username=None, password=None, *, painter_id):  # 强化参数调用.
     pixiv = Pixiv()
     pixiv.login(username, password)
     pixiv.get_work_of_painter(painter_id)
@@ -54,7 +53,7 @@ class Pixiv(requests.Session):
         if self.login_with_cookies():
             return True
         else:
-            self.login_with_account(pixiv_id, pixiv_passwd)
+            return self.login_with_account(pixiv_id, pixiv_passwd)
 
     def login_with_cookies(self):
         try:
@@ -85,11 +84,11 @@ class Pixiv(requests.Session):
         self._parse_artist_page(artist_id)
         self._get_work_info()
         for item in self.work_deque:
-            url = self._get_real_url(id=item[0], date=item[1], filename=item[2])
-            self._get_img_data(img_url=url, filename=item[2], id=item[0])
+            self._get_img_data(id=item[0], date=item[1], filename=item[2])
 
     def _parse_artist_page(self, artist_id, number=10):
         self.id = artist_id
+        print(self.id)
         list_of_works = self.get(self.list_of_works_mode.format(id=artist_id))
         selector = etree.HTML(list_of_works.text)
         try:
@@ -129,19 +128,30 @@ class Pixiv(requests.Session):
             filename = item.split('/')[-1].replace('_master1200.jpg', '')
             self.work_deque.append((id_str, date_str, filename))
 
-    def _get_real_url(self, id, date, filename):
-        work_img_url = self.after_str_mode.format(date=date, filename=filename + self.file_type)
+    def _get_real_url(self, id, date, filename, file_type):
+        work_img_url = self.after_str_mode.format(date=date, filename=filename + file_type)
         return work_img_url
 
-    def _get_img_data(self, img_url, filename, id):
+    def _get_img_data(self, id, date, filename):
         headers = self.headers
         headers['Referer'] = 'https://www.pixiv.net/member_illust.php?mode=medium&illust_id={}'.format(id)
         headers['Host'] = 'www.pixiv.net'
+        temp_file_type = self.file_type
+        img_url = self._get_real_url(id, date, filename, temp_file_type)
         img_data = self.get(img_url, headers=headers)
         if img_data.status_code == 200:
-            self._save_img_file(filename=filename, img_data=img_data.content)
-        else:
-            print(img_data.status_code)
+            self._save_img_file(filename=filename, img_data=img_data.content, file_type=temp_file_type)
+        elif img_data.status_code == 404:
+            print('转换图片格式')
+            self._type_conversion()  # 如果使用异步, 这个self.file_type 会害死我
+            temp_file_type = self.type_conversion(temp_file_type)
+            img_url = self._get_real_url(id, date, filename, temp_file_type)
+            img_data = self.get(img_url, headers=headers)
+            if img_data.status_code == 200:
+                self._save_img_file(filename=filename, img_data=img_data.content, file_type=temp_file_type)
+            else:
+                print('转换格式也救不了你...: {}'.format(img_url))
+        else:  # get 403
             print('访问图片具体页面出错: {}'.format(img_url))
 
     def _create_folder(self):
@@ -150,10 +160,10 @@ class Pixiv(requests.Session):
             os.makedirs(dir_name)
         self.artist_dir_exist = True
 
-    def _save_img_file(self, filename, img_data):
+    def _save_img_file(self, filename, img_data, file_type):
         if not self.artist_dir_exist:
             self._create_folder()
-        file_path = os.path.join(self.dir_name, self.user_name, filename + self.file_type)
+        file_path = os.path.join(self.dir_name, self.user_name, filename + file_type)
         if not os.path.exists(file_path):
             with open(file=file_path, mode='wb') as f:
                 f.write(img_data)
@@ -161,28 +171,28 @@ class Pixiv(requests.Session):
         else:
             print('{}文件已经存在....'.format(filename))
 
+    def _type_conversion(self):
+        """转换文件格式"""
+        if self.file_type == '.png':
+            self.file_type = '.jpg'
+        elif self.file_type == '.jpg':
+            self.file_type = '.png'
 
-def process_args():
-    parser = argparse.ArgumentParser(
-        description='Download pictures for Pixiv Painter.'
-    )
-    parser.add_argument('-u', '--username', help='Your Pixiv_username.')
-    parser.add_argument('-p', '--password', help='Your Pixiv_password.')
-    parser.add_argument('-pid', '--painter_id', help='Painter ID', required=True)
-
-    args = parser.parse_args()
-    return dict(username=args.username, password=args.password, painter_id=args.painter_id)
-
-
-def main():
-    data_dict = process_args()
-    demo = Pixiv()
-    demo.login(data_dict.get('username'), data_dict.get('password'))
-    demo.get_work_of_painter(data_dict['painter_id'])
+    @staticmethod
+    def type_conversion(file_type):
+        if file_type == '.png':
+            return '.jpg'
+        elif file_type == '.jpg':
+            return '.png'
 
 
 if __name__ == '__main__':
-    main()
+    username = input('输入你的帐号:')
+    password = input('输入你的密码:')
+    painter_id = input('输入画师ID:')
+    demo = Pixiv()
+    demo.login(username, password)
+    demo.get_work_of_painter(painter_id)
 
 
 
@@ -203,13 +213,10 @@ if __name__ == '__main__':
 
 
 
-
-
-
-
 # Session class youhua...
 # cookies caozuo...
 
+# 还需要再操作文件格式的转换
 # log
 # db ?? ....emmm mongodb, sqlite
 # GUI: sock5 代理...
@@ -219,3 +226,4 @@ if __name__ == '__main__':
 # 压缩...
 # 命令行..
 # 异步
+# 将用户名密码写到setting中去???
