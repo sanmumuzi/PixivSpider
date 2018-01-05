@@ -7,6 +7,7 @@ import math
 from http import cookiejar
 from lxml import etree
 from collections import deque
+import sqlite3
 
 from setting import re_tuple, url_tuple, User_Agent, form_data, COOKIE_FILE, work_num_of_each_page, save_folder
 
@@ -34,6 +35,7 @@ class Pixiv(requests.Session):
         self.id = None
         self.file_type = '.png'
         self.artist_dir_exist = False
+        self.pic_detail_page_mode = 'https://www.pixiv.net/member_illust.php?mode=medium&illust_id={id}'
         self.list_of_works_mode = 'https://www.pixiv.net/member_illust.php?id={id}'
         self.after_str_mode = 'https://i.pximg.net/img-original/img/{date}/{filename}'
         self.headers.update({'User-Agent': User_Agent})
@@ -106,14 +108,30 @@ class Pixiv(requests.Session):
             self.page_num = math.ceil(self.work_num / self.work_num_of_each_page)
             print(self.work_num, self.page_num)
 
+    def _parse_pic_detail_page(self, pic_id):
+        url = self.pic_detail_page_mode.format(id=pic_id)
+        detail_result = self.get(url)
+        selector = etree.HTML(detail_result.text)
+        try:
+            self.user_name = selector.xpath('//a[@class="user-name"]/text()')[0]
+        except IndexError:
+            print('Get user_name failure.')
+            sys.exit(1)
+        try:
+            img_url = selector.xpath('//img[@class="original-image"]/@data-src')[0]
+            print(img_url)
+        except IndexError:
+            print('Get real Pic url failure.')
+            sys.exit(1)
+        else:
+            return img_url
+
     def _get_work_info(self):
-        # print(self.page_num, '______________')
         base_url = self.list_of_works_mode.format(id=self.id)
         if self.page_num >= 1:
             self._get_each_work_info(base_url)
         if self.page_num >= 2:
             for each_page in range(2, self.page_num + 1):
-                # print('sign____')
                 # works_params = {'type': 'all', 'p': each_page}
                 self._get_each_work_info(base_url + '&type=all&p={}'.format(each_page))
 
@@ -132,27 +150,42 @@ class Pixiv(requests.Session):
         work_img_url = self.after_str_mode.format(date=date, filename=filename + file_type)
         return work_img_url
 
-    def _get_img_data(self, id, date, filename):
+    def _get_img_data(self, id=None, date=None, filename=None, img_url=None):
         headers = self.headers
-        headers['Referer'] = 'https://www.pixiv.net/member_illust.php?mode=medium&illust_id={}'.format(id)
         headers['Host'] = 'www.pixiv.net'
         temp_file_type = self.file_type
-        img_url = self._get_real_url(id, date, filename, temp_file_type)
-        img_data = self.get(img_url, headers=headers)
-        if img_data.status_code == 200:
-            self._save_img_file(filename=filename, img_data=img_data.content, file_type=temp_file_type)
-        elif img_data.status_code == 404:
-            print('转换图片格式')
-            self._type_conversion()  # 如果使用异步, 这个self.file_type 会害死我
-            temp_file_type = self.type_conversion(temp_file_type)
-            img_url = self._get_real_url(id, date, filename, temp_file_type)
+        if img_url is None:
+            if id is not None and date is not None and filename is not None:
+                headers['Referer'] = self.pic_detail_page_mode.format(id)
+
+                img_url = self._get_real_url(id, date, filename, temp_file_type)
+                img_data = self.get(img_url, headers=headers)
+                if img_data.status_code == 200:
+                    self._save_img_file(filename=filename + temp_file_type, img_data=img_data.content)
+                elif img_data.status_code == 404:
+                    print('转换图片格式')
+                    self._type_conversion()  # 如果使用异步, 这个self.file_type 会害死我
+                    temp_file_type = self.type_conversion(temp_file_type)
+                    img_url = self._get_real_url(id, date, filename, temp_file_type)
+                    img_data = self.get(img_url, headers=headers)
+                    if img_data.status_code == 200:
+                        self._save_img_file(filename=filename + temp_file_type, img_data=img_data.content)
+                    else:
+                        print('转换格式也救不了你...: {}'.format(img_url))
+                else:  # get 403
+                    print('访问图片具体页面出错: {}'.format(img_url))
+            else:
+                print('{}参数输入错误,无法构造url...'.format(self._get_img_data.__name__))
+                sys.exit(1)
+        else:
+            filename = img_url.split('/')[-1]
+            pic_id = filename.split('_')[0]
+            headers['Referer'] = self.pic_detail_page_mode.format(id=pic_id)
             img_data = self.get(img_url, headers=headers)
             if img_data.status_code == 200:
-                self._save_img_file(filename=filename, img_data=img_data.content, file_type=temp_file_type)
+                self._save_img_file(filename=filename, img_data=img_data.content)
             else:
-                print('转换格式也救不了你...: {}'.format(img_url))
-        else:  # get 403
-            print('访问图片具体页面出错: {}'.format(img_url))
+                print('直接访问{}失败...'.format(img_url))
 
     def _create_folder(self):
         dir_name = os.path.join(self.dir_name, self.user_name)
@@ -160,13 +193,14 @@ class Pixiv(requests.Session):
             os.makedirs(dir_name)
         self.artist_dir_exist = True
 
-    def _save_img_file(self, filename, img_data, file_type):
+    def _save_img_file(self, filename, img_data):
         if not self.artist_dir_exist:
             self._create_folder()
-        file_path = os.path.join(self.dir_name, self.user_name, filename + file_type)
+        file_path = os.path.join(self.dir_name, self.user_name, filename)
         if not os.path.exists(file_path):
             with open(file=file_path, mode='wb') as f:
                 f.write(img_data)
+                print('成功...')
                 # log -> log.txt
         else:
             print('{}文件已经存在....'.format(filename))

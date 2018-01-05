@@ -5,7 +5,7 @@ from PIL import Image, ImageTk
 
 from new_crawl import Pixiv
 
-img_file_path = 'artist_work'
+img_file_path = 'artist_work'  # 如果不存在artist_work文件将报错.......!!!!!!!!!!!!!
 dir_list = [os.path.abspath(os.path.join(img_file_path, relative_path)) for relative_path in os.listdir(img_file_path)]
 img_list = [os.path.join(dir_name, img)
             for dir_name in dir_list for img in os.listdir(dir_name) if img.endswith(('.png', '.jpg'))]
@@ -51,7 +51,7 @@ img_var = tk.StringVar(value=img_list)
 
 root.title('Pixiv_spider')
 content = tk.Frame(root, padx=3, pady=3)
-frame = tk.Frame(content, borderwidth=5, relief='sunken', width=200, height=100)
+frame = tk.Frame(content, borderwidth=5, relief='sunken', width=1000, height=800)
 img_lbox = tk.Listbox(frame, listvariable=img_var, height=10)
 logo = ImageTk.PhotoImage(resize_img(file_name=img_list[36], width=600, height=800))
 logo_lbl = tk.Label(frame, image=logo)
@@ -88,7 +88,7 @@ root.rowconfigure(0, weight=1)  # good !!!
 # content.rowconfigure(0, weight=1)
 content.rowconfigure(1, weight=1)
 # content.rowconfigure(2, weight=1)
-content.rowconfigure(3, weight=1)
+# content.rowconfigure(3, weight=1)
 # content.rowconfigure(4, weight=1)
 content.rowconfigure(5, weight=1)
 content.columnconfigure(0, weight=3)
@@ -96,7 +96,7 @@ content.columnconfigure(1, weight=3)
 content.columnconfigure(2, weight=3)
 content.columnconfigure(3, weight=1)
 content.columnconfigure(4, weight=1)
-frame.columnconfigure(0, weight=1)
+frame.columnconfigure(0,minsize=400, weight=1)
 frame.rowconfigure(0, weight=1)
 frame.columnconfigure(1, weight=1)
 frame.rowconfigure(1, weight=1)
