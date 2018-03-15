@@ -1,0 +1,27 @@
+create_table_tuple = (
+    # 图片基本信息数据表
+    'CREATE TABLE PICTURE (ID INT PRIMARY KEY NOT NULL, PID INT , DATE TEXT NOT NULL, TYPE TEXT NOT NULL , P INT)',
+    # 画师基本信息数据表
+    'CREATE TABLE PAINTER (ID INT PRIMARY KEY NOT NULL, Nickname TEXT, Website TEXT, "Self introduction" TEXT)',
+    # 画师标签表
+    'CREATE TABLE "PAINTER_TAG" (ID INTEGER PRIMARY KEY AUTOINCREMENT, NAME TEXT NOT NULL UNIQUE)',
+    # 图片标签表
+    'CREATE TABLE "PICTURE_TAG" (ID INTEGER PRIMARY KEY AUTOINCREMENT, NAME TEXT NOT NULL UNIQUE)',
+    # 画师标签关联表
+    'CREATE TABLE PAINTER_TAG_RELATION (PAINTER_ID INT NOT NULL, TAG_ID INT NOT NULL)',
+    # 图片标签关联表
+    'CREATE TABLE PICTURE_TAG_RELATION (PICTURE_ID INT NOT NULL, TAG_ID INT NOT NULL)',
+    # 画师联系方式表
+    'CREATE TABLE CONTACTS ( PAINTER_ID INT PRIMARY KEY NOT NULL, Twitter TEXT, Instagram TEXT, Tumblr TEXT, '
+    'Facebook TEXT, Skype TEXT, "Windows Live" TEXT, "Google Talk" TEXT, "Yahoo! Messenger" TEXT, Circlems TEXT)',
+    # 画师英文个人信息表
+    'CREATE TABLE EN_PERSONAL_INFO (ID INT PRIMARY KEY NOT NULL, Gender TEXT, Location TEXT, '
+    'Age TEXT, Birthday TEXT, Occupation TEXT)',
+    # 画师中文个人信息表
+    'CREATE TABLE ZH_PERSONAL_INFO (ID INT PRIMARY KEY NOT NULL, Gender TEXT, Location TEXT, '
+    'Age TEXT, Birthday TEXT, Occupation TEXT)',
+    'CREATE TABLE PICTURE_INFO (ID INT PRIMARY KEY NOT NULL, '
+    'Title TEXT, Introduction TEXT, Bookmark INT)',
+    # ...想加入用户表，然后加入mark关系和follow关系，绝望
+    # 'CREATE TABLE USER (ID INT PRIMARY KEY NOT NULL, )'
+)

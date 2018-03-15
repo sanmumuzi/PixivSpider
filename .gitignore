@@ -5,4 +5,8 @@ __pycache__
 cookies*
 work_list.txt
 artist_work
-venv
+*venv
+_*.db
+example.db
+*.html
+*.xlsx

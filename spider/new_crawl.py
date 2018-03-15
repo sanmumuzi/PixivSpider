@@ -1,17 +1,20 @@
-import requests
-import sys
-import os
-import atexit
-import logging
 import math
-from http import cookiejar
-from lxml import etree
+import os
+import sys
 from collections import deque
-import sqlite3
+from http import cookiejar
 
-from setting import re_tuple, url_tuple, User_Agent, form_data, COOKIE_FILE, work_num_of_each_page, save_folder
+import requests
+from lxml import etree
+
+from operate_db.use_db import conn, insert_picture_data, find_all_picture_id
+from setting import re_tuple, url_tuple, User_Agent, \
+    form_data, COOKIE_FILE, work_num_of_each_page, save_folder, \
+    pic_detail_page_mode, list_of_works_mode, after_str_mode
 
 __all__ = ['Pixiv', 'get_work_of_painter']
+
+already_download_picture = find_all_picture_id(conn)
 
 
 def get_work_of_painter(username=None, password=None, *, painter_id):  # 强化参数调用.
@@ -32,12 +35,10 @@ class Pixiv(requests.Session):
         self.work_num_of_each_page = work_num_of_each_page
         self.user_name = None
         self.work_deque = deque()
-        self.id = None
-        self.file_type = '.png'
+        # self.already_download_picture = find_all_picture_id(conn)
+        self.pid = None
+        self.file_type = 'png'
         self.artist_dir_exist = False
-        self.pic_detail_page_mode = 'https://www.pixiv.net/member_illust.php?mode=medium&illust_id={id}'
-        self.list_of_works_mode = 'https://www.pixiv.net/member_illust.php?id={id}'
-        self.after_str_mode = 'https://i.pximg.net/img-original/img/{date}/{filename}'
         self.headers.update({'User-Agent': User_Agent})
         self.cookies = cookiejar.LWPCookieJar(filename=COOKIE_FILE)
 
@@ -86,12 +87,12 @@ class Pixiv(requests.Session):
         self._parse_artist_page(artist_id)
         self._get_work_info()
         for item in self.work_deque:
-            self._get_img_data(id=item[0], date=item[1], filename=item[2])
+            self._get_img_data(pid=item[0], date=item[1], filename=item[2])
 
     def _parse_artist_page(self, artist_id, number=10):
-        self.id = artist_id
-        print(self.id)
-        list_of_works = self.get(self.list_of_works_mode.format(id=artist_id))
+        self.pid = artist_id
+        print(self.pid)
+        list_of_works = self.get(list_of_works_mode.format(pid=artist_id))
         selector = etree.HTML(list_of_works.text)
         try:
             self.user_name = selector.xpath('//a[@class="user-name"]/text()')[0]
@@ -109,7 +110,7 @@ class Pixiv(requests.Session):
             print(self.work_num, self.page_num)
 
     def _parse_pic_detail_page(self, pic_id):
-        url = self.pic_detail_page_mode.format(id=pic_id)
+        url = pic_detail_page_mode.format(pid=pic_id)
         detail_result = self.get(url)
         selector = etree.HTML(detail_result.text)
         try:
@@ -127,7 +128,7 @@ class Pixiv(requests.Session):
             return img_url
 
     def _get_work_info(self):
-        base_url = self.list_of_works_mode.format(id=self.id)
+        base_url = list_of_works_mode.format(pid=self.pid)
         if self.page_num >= 1:
             self._get_each_work_info(base_url)
         if self.page_num >= 2:
@@ -142,34 +143,37 @@ class Pixiv(requests.Session):
         for item in original_img_url:
             # print(self.headers)
             date_str = self._re_tuple.date.findall(item)[0]  # 取出url中的日期部分
-            id_str = self._re_tuple.id.findall(item)[0]  # 取出url中的作品id部分
-            filename = item.split('/')[-1].replace('_master1200.jpg', '')
-            self.work_deque.append((id_str, date_str, filename))
+            id_str = self._re_tuple.pid.findall(item)[0]  # 取出url中的作品id部分
+            filename = item.split('/')[-1].replace('_master1200.jpg', '')  # XXX_p0
+            if int(id_str) not in already_download_picture:  # 将filename 替换成 ID + FENP
+                self.work_deque.append((id_str, date_str, filename))
+            else:
+                print('图片{}已经存在了， 不再加入队列中....'.format(id_str))
 
-    def _get_real_url(self, id, date, filename, file_type):
-        work_img_url = self.after_str_mode.format(date=date, filename=filename + file_type)
-        return work_img_url
-
-    def _get_img_data(self, id=None, date=None, filename=None, img_url=None):
+    def _get_img_data(self, pid=None, date=None, filename=None, img_url=None):
         headers = self.headers
         headers['Host'] = 'www.pixiv.net'
         temp_file_type = self.file_type
         if img_url is None:
-            if id is not None and date is not None and filename is not None:
-                headers['Referer'] = self.pic_detail_page_mode.format(id)
+            if pid is not None and date is not None and filename is not None:
+                headers['Referer'] = pic_detail_page_mode.format(pid=pid)
 
-                img_url = self._get_real_url(id, date, filename, temp_file_type)
+                img_url = self._get_real_url(pid, date, filename, temp_file_type)
                 img_data = self.get(img_url, headers=headers)
                 if img_data.status_code == 200:
-                    self._save_img_file(filename=filename + temp_file_type, img_data=img_data.content)
+                    insert_picture_data(conn, pid, self.pid, date, temp_file_type)
+                    self._save_img_file(filename=self._get_complete_filename(filename, temp_file_type),
+                                        img_data=img_data.content)
                 elif img_data.status_code == 404:
                     print('转换图片格式')
                     self._type_conversion()  # 如果使用异步, 这个self.file_type 会害死我
                     temp_file_type = self.type_conversion(temp_file_type)
-                    img_url = self._get_real_url(id, date, filename, temp_file_type)
+                    img_url = self._get_real_url(pid, date, filename, temp_file_type)
                     img_data = self.get(img_url, headers=headers)
                     if img_data.status_code == 200:
-                        self._save_img_file(filename=filename + temp_file_type, img_data=img_data.content)
+                        insert_picture_data(conn, pid, self.pid, date, temp_file_type)
+                        self._save_img_file(filename=self._get_complete_filename(filename, temp_file_type),
+                                            img_data=img_data.content)
                     else:
                         print('转换格式也救不了你...: {}'.format(img_url))
                 else:  # get 403
@@ -180,7 +184,7 @@ class Pixiv(requests.Session):
         else:
             filename = img_url.split('/')[-1]
             pic_id = filename.split('_')[0]
-            headers['Referer'] = self.pic_detail_page_mode.format(id=pic_id)
+            headers['Referer'] = pic_detail_page_mode.format(pid=pic_id)
             img_data = self.get(img_url, headers=headers)
             if img_data.status_code == 200:
                 self._save_img_file(filename=filename, img_data=img_data.content)
@@ -207,17 +211,26 @@ class Pixiv(requests.Session):
 
     def _type_conversion(self):
         """转换文件格式"""
-        if self.file_type == '.png':
-            self.file_type = '.jpg'
-        elif self.file_type == '.jpg':
-            self.file_type = '.png'
+        if self.file_type == 'png':
+            self.file_type = 'jpg'
+        elif self.file_type == 'jpg':
+            self.file_type = 'png'
+
+    @staticmethod
+    def _get_complete_filename(filename, file_type):
+        return filename + '.' + file_type
+
+    @staticmethod
+    def _get_real_url(pid, date, filename, file_type):
+        work_img_url = after_str_mode.format(date=date, filename=filename, file_type=file_type)
+        return work_img_url
 
     @staticmethod
     def type_conversion(file_type):
-        if file_type == '.png':
-            return '.jpg'
-        elif file_type == '.jpg':
-            return '.png'
+        if file_type == 'png':
+            return 'jpg'
+        elif file_type == 'jpg':
+            return 'png'
 
 
 if __name__ == '__main__':
@@ -228,23 +241,13 @@ if __name__ == '__main__':
     demo.login(username, password)
     demo.get_work_of_painter(painter_id)
 
-
-
-
-
-
 # x.parse_artist_page(27517)
 # x.get_work_info()
 # for temp in x.work_deque:
-#     url = x.get_real_url(id=temp[0], date=temp[1], filename=temp[2])
-#     x.get_img_data(img_url=url, filename=temp[2], id=temp[0])
+#     url = x.get_real_url(pid=temp[0], date=temp[1], filename=temp[2])
+#     x.get_img_data(img_url=url, filename=temp[2], pid=temp[0])
 
 # print(x.work_deque)
-
-
-
-
-
 
 
 # Session class youhua...
