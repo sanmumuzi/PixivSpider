@@ -65,11 +65,14 @@ img_file_path = os.path.join(os.path.dirname(__file__), 'artist_work')
 save_folder = img_file_path
 uncategorized_save_folder = os.path.join(img_file_path, 'uncategorized_picture')
 
-dir_list = [os.path.abspath(os.path.join(img_file_path, relative_path)) for relative_path in
-            os.listdir(img_file_path) if os.path.isdir(os.path.abspath(os.path.join(img_file_path, relative_path)))]
+# dir_list = [os.path.abspath(os.path.join(img_file_path, relative_path)) for relative_path in
+#             os.listdir(img_file_path) if os.path.isdir(os.path.abspath(os.path.join(img_file_path, relative_path)))]
+#
+# img_list = [os.path.join(dir_name, img)
+#             for dir_name in dir_list for img in os.listdir(dir_name) if img.endswith(('.png', '.jpg'))]
 
-img_list = [os.path.join(dir_name, img)
-            for dir_name in dir_list for img in os.listdir(dir_name) if img.endswith(('.png', '.jpg'))]
+img_list = [img_path for img_path in os.listdir(img_file_path) if img_path.endswith(('.png', '.jpg'))]
+picture_id_list = [file_name.split('_')[0] for file_name in img_list]
 
 # sqlite database config
 db_path = os.path.join(os.path.dirname(__file__), 'db', '_pixiv.db')  # 'db\_pixiv.db'
@@ -79,3 +82,7 @@ COOKIE_FILE = os.path.join(os.path.dirname(__file__), 'cookies', 'cookies')  # '
 
 # base dir name
 base_dir_name = os.path.abspath(os.path.dirname(__file__))
+
+
+if __name__ == '__main__':
+    print(img_list)

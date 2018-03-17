@@ -7,13 +7,11 @@ from math import ceil
 
 import requests
 from lxml import etree
-import xlsxwriter
 
 from setting import re_tuple, url_tuple, User_Agent, \
     form_data, COOKIE_FILE, pic_detail_page_mode, after_str_mode, \
     personal_info_mode, list_of_works_mode, \
     work_num_of_each_page, img_file_path, bookmark_add_form_data
-from operate_db.db_func import insert_picture_base_info_from_download
 
 __all__ = ['Pixiv', 'PixivDownload', 'PixivPainterInfo', 'PixivPictureInfo', 'PixivAllPictureOfPainter',
            'PixivDownloadAlone', 'PixivOperatePicture']
@@ -116,7 +114,10 @@ class PixivDownload(Pixiv):  # pure download a item
         else:
             resp = self._get_img_data(pid=self.work_id, img_url=original_image)
             if resp is not None:
-                pid, p, date, file_type =self.__picture_base_info =  self.split_info(original_image)
+                self.__picture_base_info = list(self.split_info(original_image))
+                # add painter_id to info list, just for compatibility and interface.
+                self.__picture_base_info.insert(1, None)
+                pid, p, date, file_type = self.split_info(original_image)
 
                 save_path = self._save_img_file(filename=self._get_complete_filename(pid, p, file_type),
                                                 img_data=resp,
@@ -189,15 +190,18 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
             r = self.get(pic_detail_page_mode.format(pid=self.work_id))
         else:
             r = self.resp
-        info_dict = {}
+        info_list = []
         if r.status_code == 200:
-            info_dict = self._parse_picture_html(r.text)
+            info_list = self._parse_picture_html(r.text)
+            info_list.insert(0, self.work_id)
+            info_list.append(None)  # already add to bookMark.
         else:
             print('访问图片具体页面失败:{}'.format(self.work_id))
-        return info_dict  # 如果访问失败，则返回一个空字典
+        return info_list  # 如果访问失败，则返回一个空字典
 
     def _parse_picture_html(self, html_text):
-        data_dict = {}
+        # data_dict = {}
+        data_list = []
         selector = etree.HTML(html_text)
         try:
             section = selector.xpath('//section[@class="work-info"]')[0]
@@ -205,9 +209,12 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
             print('Get work_info section failure.')
             raise
         else:
-            data_dict['title'] = self._parse_work_title(section)
-            data_dict['introduction'] = self._parse_work_introduction(section)
-        return data_dict
+            # data_dict['title'] = self._parse_work_title(section)
+            # data_dict['introduction'] = self._parse_work_introduction(section)
+            # return data_dict
+            data_list.append(self._parse_work_title(section))
+            data_list.append(self._parse_work_introduction(section))
+        return data_list
 
     @staticmethod
     def _parse_work_title(section):
@@ -254,21 +261,26 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
         self.painter_id = painter_id
         self.picture_id = picture_id
 
+    # Abandoned, we shouldn't premature optimization!!!
     def get_painter_info_from_work_detail_page(self, resp=None):
         if self.picture_id is not None:
             if resp is None:
                 resp = self.get(pic_detail_page_mode.format(pid=self.picture_id))
             selector = etree.HTML(resp.text)
-            painter_name = selector.xpath('//a[@class="user-name"]/@title')[0]
+            # painter_name = selector.xpath('//a[@class="user-name"]/@title')[0]
             painter_id = selector.xpath('//a[@class="user-name"]/@href')[0].split('=')[-1]
-            print(painter_id, painter_name)
-            return painter_id, painter_name
+            self.painter_id = painter_id
+            return painter_id
+            # return self.get_painter_id_info()  # get painter detail info.
         else:
             return None
 
     def get_painter_id_info(self):  # main function (DEFAULT: Get information from personal pages)
         r = self.get(personal_info_mode.format(pid=self.painter_id))
+        with open('ggg.html', 'wt', encoding='utf-8') as f:
+            f.write(r.text)
         info_dict = self._parse_html(r.text)
+        info_dict['ID'] = self.painter_id
         return info_dict
 
     def _parse_html(self, html_text):  # 用于分析所有table的，现阶段只有profile这个table
@@ -494,6 +506,5 @@ if __name__ == "__main__":
     x = PixivPainterInfo(picture_id=66318681)
     x.login()
     x.get_painter_info_from_work_detail_page()
-
 
 # sometimes i'm will fall in ...

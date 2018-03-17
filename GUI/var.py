@@ -1,12 +1,14 @@
+import os
 import tkinter as tk
 import tkinter.font as tkfont
+from random import sample
+
 from PIL import ImageTk
 
-from GUI.func import resize_img
-from setting import img_list
-from spider.main_logic import button_of_get_a_picture
 from GUI.decorator import decorator_thread
-
+from GUI.func import resize_img
+from setting import img_list, img_file_path
+from spider.main_logic import button_of_get_a_picture
 
 root = tk.Tk()
 
@@ -25,6 +27,7 @@ img_path_var = tk.StringVar()
 
 work_message_var.set('Please wait......')
 painter_info_var.set('Please wait......')
+
 
 # def get_info():
 #     def get_img(usr, passwd, status, pter_id):
@@ -78,13 +81,15 @@ def get_a_picture_button():
     @decorator_thread(func_name=inner_button)
     def inner(picture_id, status, usr, password):  # Only to pass parameters
         pass
+
     inner(picture_id=picture_var.get(), status=status_var, usr=username_var.get(), password=passwd_var.get())
 
 
 def change_logo(event):
     global logo, logo_lbl
     logo_lbl.destroy()
-    logo = ImageTk.PhotoImage(resize_img(file_name=img_list[img_lbox.curselection()[0]], width=600, height=800))
+    picture_file_path = os.path.join(img_file_path, img_list[img_lbox.curselection()[0]])
+    logo = ImageTk.PhotoImage(resize_img(file_name=picture_file_path, width=600, height=800))
     logo_lbl = tk.Label(frame, image=logo, width=600, height=800)
     logo_lbl.grid(column=10, row=0, columnspan=20, rowspan=60, sticky=(tk.N, tk.S, tk.W, tk.E))
     print(img_lbox.curselection()[0])  # 第几项
@@ -108,7 +113,7 @@ painter_info_frame = tk.Frame(option_frame, borderwidth=5, relief='sunken')
 list_frame = tk.Frame(frame)
 
 img_lbox = tk.Listbox(list_frame, listvariable=img_var, height=10)
-logo = ImageTk.PhotoImage(resize_img(file_name=img_list[8], width=600, height=800))
+logo = ImageTk.PhotoImage(resize_img(file_name=os.path.join(img_file_path, sample(img_list, 1)[0]), width=600, height=800))
 logo_lbl = tk.Label(frame, image=logo, width=600, height=800)  # 固定图片窗体大小
 img_lbox.bind('<Double-1>', change_logo)
 
@@ -126,7 +131,7 @@ work_message_bar = tk.Message(work_message_frame, textvariable=work_message_var,
 status_lbl = tk.Label(option_frame, textvariable=status_var)
 
 ok_button = tk.Button(option_frame, text='Okay', command=lambda: None)
-get_an_work_button = tk.Button(option_frame, text= 'start', command=get_a_picture_button)
+get_an_work_button = tk.Button(option_frame, text='start', command=get_a_picture_button)
 quit_button = tk.Button(option_frame, text='quit!', command=root.destroy)
 
 painter_info_widget = tk.Message(painter_info_frame, textvariable=painter_info_var, font=ft)
