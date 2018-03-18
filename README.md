@@ -37,3 +37,8 @@ Rebuild code.
 Use new_crawl.py now.
 
 Only to achieve the most basic functions.
+
+
+### 2018.3.18 Update
+
+Discard GUI folder.
