@@ -42,3 +42,7 @@ Only to achieve the most basic functions.
 ### 2018.3.18 Update
 
 Discard GUI folder.
+
+### 2018.3.19 Update
+
+Code structure reconstruction.

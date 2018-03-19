@@ -1,8 +1,8 @@
 import os
 
-from operate_db.db_func import *
+from db_func import *
 from setting import picture_id_list, img_file_path
-from spider.pixiv_spider import *
+from pixiv_spider import *
 
 
 __all__ = ('get_a_picture', 'get_all_pictures_of_painter', 'add_bookmark', 'button_of_get_a_picture')
@@ -100,7 +100,7 @@ def button_of_get_a_picture(picture_id, account, password):  # 主控函数，�
     else:
         print(painter_info)  # should be a tuple of data
 
-    return save_path, picture_info
+    return save_path, picture_info  # 返回信息给GUI使用...
 
     # picture_base_info = search_picture_base_info(picture_id=picture_id)  # 通过数据库查询获取图片基本信息
     # if picture_base_info is not None:
