@@ -7,8 +7,8 @@ from http import cookiejar
 import requests
 from lxml import etree
 
-from operate_db.use_db import conn, insert_picture_data, find_all_picture_id
-from setting import re_tuple, url_tuple, User_Agent, \
+from PixivSpider.operate_db import conn, insert_picture_data, find_all_picture_id
+from PixivSpider.setting import re_tuple, url_tuple, User_Agent, \
     form_data, COOKIE_FILE, work_num_of_each_page, save_folder, \
     pic_detail_page_mode, list_of_works_mode, after_str_mode
 

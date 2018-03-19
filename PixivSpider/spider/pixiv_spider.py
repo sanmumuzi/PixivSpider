@@ -8,7 +8,9 @@ from math import ceil
 import requests
 from lxml import etree
 
-from setting import re_tuple, url_tuple, User_Agent, \
+from PixivSpider import setting
+
+from PixivSpider.setting import re_tuple, url_tuple, User_Agent, \
     form_data, COOKIE_FILE, pic_detail_page_mode, after_str_mode, \
     personal_info_mode, list_of_works_mode, \
     work_num_of_each_page, img_file_path, bookmark_add_form_data
@@ -108,8 +110,6 @@ class PixivDownload(Pixiv):  # pure download a item
         try:
             original_image = selector.xpath('//img[@class="original-image"]/@data-src')[0]
         except IndexError:
-            with open('555.html', 'wt', encoding='utf-8') as f:
-                f.write(self.resp.text)
             raise
         else:
             resp = self._get_img_data(pid=self.work_id, img_url=original_image)
@@ -277,8 +277,6 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
 
     def get_painter_id_info(self):  # main function (DEFAULT: Get information from personal pages)
         r = self.get(personal_info_mode.format(pid=self.painter_id))
-        with open('ggg.html', 'wt', encoding='utf-8') as f:
-            f.write(r.text)
         info_dict = self._parse_html(r.text)
         info_dict['ID'] = self.painter_id
         return info_dict
@@ -326,8 +324,6 @@ class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific art
     # def _get_work_num(self):  # 其实真正对该程序有用的是page_num, 思考work_num 可以怎么用
     #     list_of_works = self.get(list_of_works_mode.format(pid=self.painter_id))
     #     # print(list_of_works.text)
-    #     with open('xxx.html', 'wt', encoding='utf-8') as f:
-    #         f.write(list_of_works.text)
     #     selector = etree.HTML(list_of_works.text)
     #     try:
     #         print(self.painter_id)
@@ -427,8 +423,6 @@ class PixivMyBookmark(Pixiv):
 
     def get_html(self):  # a[class="bookmark-count _ui-tooltip"]  # ???喵喵喵???
         r = self.get(self.main_page)  # 要不要禁止重定向
-        with open('faQ.html', 'wt', encoding='utf-8') as f:
-            f.write(r.text)
 
     def get_picture_info(self):  # 其实 p=1 这个参数可以传，不像作品主页一样会报错，所以这里可以简化代码
         if self.page_num >= 1:
@@ -451,12 +445,6 @@ class PixivMyBookmark(Pixiv):
                     temp_data_list = self._get_each_picture_info(selector)
                     self.picture_deque.extend(temp_data_list)
         print(self.picture_deque)
-
-        # dst_wb = xlsxwriter.Workbook('bookmark.xlsx')
-        # worksheet = dst_wb.add_worksheet()
-        # for row_index, item_tuple in enumerate(self.picture_deque):
-        #     for columns_index, item in enumerate(item_tuple):
-        #         worksheet.write(row_index, columns_index, item)
 
     @staticmethod
     def _get_each_picture_info(selector):

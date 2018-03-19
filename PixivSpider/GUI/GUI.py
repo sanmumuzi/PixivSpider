@@ -1,6 +1,3 @@
-from GUI.var import *
-
-
 content.grid(column=0, row=0, sticky=(tk.N, tk.S, tk.W, tk.E))
 frame.grid(column=0, row=0, columnspan=30, rowspan=60, sticky=(tk.N, tk.S, tk.W, tk.E))
 img_lbox.grid(column=0, row=0, columnspan=10, rowspan=60, sticky=(tk.N, tk.S, tk.W, tk.E))

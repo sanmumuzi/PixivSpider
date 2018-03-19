@@ -2,9 +2,7 @@ import sys
 import os
 from setting import db_path
 from operate_db.db_func import create_db_and_table
-# from spider.new_crawl import Pixiv
 from cmd.command_line import process_args
-from GUI import GUI as gui
 
 
 def transform(_):
@@ -15,10 +13,11 @@ def transform(_):
 def main():
     data_dict = process_args()
     if data_dict['gui']:
-        gui.painterid_var.set(transform(data_dict.get('painter_id')))
-        gui.username_var.set(transform(data_dict.get('username')))
-        gui.passwd_var.set(transform(data_dict.get('password')))
-        gui.root.mainloop()
+        # GUI.painterid_var.set(transform(data_dict.get('painter_id')))
+        # GUI.username_var.set(transform(data_dict.get('username')))
+        # GUI.passwd_var.set(transform(data_dict.get('password')))
+        # GUI.root.mainloop()
+        pass
     # elif data_dict.get('painter_id'):
     #     demo = Pixiv()
     #     if demo.login(data_dict.get('username'), data_dict.get('password')):
@@ -32,11 +31,13 @@ def main():
 
 
 def pre_test():
+    sys.path.append(os.path.basename(__file__))
     if not os.path.exists(db_path):
         print('初始化数据库...{}'.format(db_path))
         create_db_and_table()
     else:
         print('数据库存在...{}'.format(db_path))
+
 
 
 if __name__ == '__main__':

@@ -37,10 +37,13 @@ form_data = {
 
 def get_tt():
     token_path = os.path.join(os.path.dirname(__file__), 'cookies', 'token')
-    with open(token_path, 'rt') as f:
-        tt = f.read()
-        print(tt)
-    return tt
+    try:
+        with open(token_path, 'rt') as f:
+            tt = f.read()
+    except FileNotFoundError as e:
+        tt = ''
+    finally:
+        return tt
 
 
 bookmark_add_form_data = {
@@ -71,8 +74,8 @@ uncategorized_save_folder = os.path.join(img_file_path, 'uncategorized_picture')
 # img_list = [os.path.join(dir_name, img)
 #             for dir_name in dir_list for img in os.listdir(dir_name) if img.endswith(('.png', '.jpg'))]
 
-img_list = [img_path for img_path in os.listdir(img_file_path) if img_path.endswith(('.png', '.jpg'))]
-picture_id_list = [file_name.split('_')[0] for file_name in img_list]
+# img_list = [img_path for img_path in os.listdir(img_file_path) if img_path.endswith(('.png', '.jpg'))]
+# picture_id_list = [file_name.split('_')[0] for file_name in img_list]
 
 # sqlite database config
 db_path = os.path.join(os.path.dirname(__file__), 'db', '_pixiv.db')  # 'db\_pixiv.db'

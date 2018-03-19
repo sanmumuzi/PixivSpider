@@ -1,5 +1,5 @@
 import sqlite3
-from setting import db_path
+from PixivSpider.setting import db_path
 
 conn = sqlite3.connect(db_path, check_same_thread=False)
 

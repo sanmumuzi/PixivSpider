@@ -1,8 +1,8 @@
 import sqlite3
 from functools import wraps
 
-from operate_db.create_db import create_table_tuple
-from setting import db_path
+from PixivSpider.operate_db.create_db import create_table_tuple
+from PixivSpider.setting import db_path
 
 __all__ = ['create_db_and_table', 'insert_picture_base_info_from_download', 'insert_picture_info_from_PixivPictureInfo',
            'insert_painter_base_info_from_picture_detail_page', 'search_picture_base_info', 'search_picture_info',
