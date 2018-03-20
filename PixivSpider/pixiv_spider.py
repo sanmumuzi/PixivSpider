@@ -7,8 +7,7 @@ from math import ceil
 
 import requests
 from lxml import etree
-
-from setting import re_tuple, url_tuple, User_Agent, \
+from PixivSpider.setting import re_tuple, url_tuple, User_Agent, \
     form_data, COOKIE_FILE, pic_detail_page_mode, after_str_mode, \
     personal_info_mode, list_of_works_mode, \
     work_num_of_each_page, img_file_path, bookmark_add_form_data

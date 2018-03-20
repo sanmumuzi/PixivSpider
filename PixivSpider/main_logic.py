@@ -1,8 +1,8 @@
 import os
 
-from db_func import *
-from setting import picture_id_list, img_file_path
-from pixiv_spider import *
+from PixivSpider.db_func import *
+from PixivSpider.setting import picture_id_list, img_file_path
+from PixivSpider.pixiv_spider import *
 
 
 __all__ = ('get_a_picture', 'get_all_pictures_of_painter', 'add_bookmark', 'button_of_get_a_picture')

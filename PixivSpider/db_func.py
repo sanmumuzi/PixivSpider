@@ -1,7 +1,7 @@
 import sqlite3
 from functools import wraps
 
-from setting import db_path
+from PixivSpider.setting import db_path
 
 __all__ = ['create_db_and_table', 'insert_picture_base_info_from_download', 'insert_picture_info_from_PixivPictureInfo',
            'insert_painter_base_info_from_picture_detail_page', 'search_picture_base_info', 'search_picture_info',
@@ -41,7 +41,7 @@ create_table_tuple = (
 def pre_connect(func):
     @wraps(func)
     def inner(*args, **kwargs):
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path)  # 这条指令如果数据库不存在,会自动创建数据库
         c = conn.cursor()
         try:
             result = func(c, conn, *args, **kwargs)

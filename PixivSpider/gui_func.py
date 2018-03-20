@@ -1,5 +1,5 @@
 from PIL import Image
-from pixiv_spider import *
+from PixivSpider.pixiv_spider import *
 
 
 def resize_img(file_name, width, height):

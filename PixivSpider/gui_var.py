@@ -5,10 +5,10 @@ from random import sample
 
 from PIL import ImageTk
 
-from gui_decorator import decorator_thread
-from gui_func import resize_img
-from setting import img_list, img_file_path
-from main_logic import button_of_get_a_picture
+from PixivSpider.gui_decorator import decorator_thread
+from PixivSpider.gui_func import resize_img
+from PixivSpider.setting import img_list, img_file_path
+from PixivSpider.main_logic import button_of_get_a_picture
 
 root = tk.Tk()
 
