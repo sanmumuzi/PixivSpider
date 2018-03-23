@@ -80,9 +80,12 @@ def get_all_picture_of_painter(painter_id=None, picture_id=None, account=None, p
 
 
 if __name__ == '__main__':
-    get_a_picture(58501385)
-    print(get_picture_info(58501385))
-    print(add_bookmark(58501385))
-    print(get_painter_info(picture_id=58501385))
-    get_all_picture_of_painter(picture_id=58501385)
+    # get_a_picture(58501385)
+    # print(get_picture_info(58501385))
+    # print(add_bookmark(58501385))
+    # print(get_painter_info(picture_id=58501385))
+    # get_all_picture_of_painter(picture_id=58501385)
+    pass
+
     # 仰望高端操作，看看能不能把测试写进注释里
+

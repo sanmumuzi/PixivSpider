@@ -7,6 +7,7 @@ import json
 # sys.path.insert(0, os.path.abspath(os.pardir))  # only to test.
 
 from PixivSpider.PixivSpiderApi import *
+from PixivSpider.setting import save_folder
 
 
 def process_args():  # 使用argparse库分析命令行参数
@@ -41,6 +42,8 @@ def process_args():  # 使用argparse库分析命令行参数
 def logic_call():
     args = process_args()
     base_args_check(args)  # 参数检查
+    if args.outpath is None:
+        args.outpath = save_folder
     if args.picture_id is not None:
         for picture_id in args.picture_id:
             if args.download_picture:
@@ -81,10 +84,11 @@ def base_args_check(args):
     except ValueError as e:
         print('ID 必须为数字...')
         raise
-    if os.path.isdir(args.outpath):
-        pass
-    else:
-        os.makedirs(args.outpath)
+    if args.outpath is not None:
+        if os.path.isdir(args.outpath):
+            pass
+        else:
+            os.makedirs(args.outpath)
 
 
 def save_json_data_file(filepath, native_data):

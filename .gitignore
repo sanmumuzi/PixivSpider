@@ -11,3 +11,5 @@ example.db
 *.html
 *.xlsx
 info_folder
+dist
+*.egg-info

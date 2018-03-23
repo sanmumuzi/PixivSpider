@@ -12,12 +12,16 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires=[
-        'requests=2.18.4',
-        'lxml=4.1.1',
+        'requests>=2.18.4',
+        'lxml>=4.1.1',
     ],
     entry_points={
         'console_scripts': [
             'PixivSpider = PixivSpider.command_line:logic_call'
         ]
-    }
+    },
+    license='GNU General Public License v3.0',
+    classifiers=[
+        'Programming Language :: Python',
+    ]
 )

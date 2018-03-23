@@ -493,12 +493,6 @@ class PixivBase(Pixiv):
 
 
 if __name__ == "__main__":
-    # x = PixivPainterInfo(picture_id=66318681)
-    # x.login()
-    # print(x.get_painter_info_from_work_detail_page())
-
-    x = PixivOperatePicture(67803290)
-    x.login()
-    print(x.bookmark_add())
+    pass
 
 # sometimes naive.
