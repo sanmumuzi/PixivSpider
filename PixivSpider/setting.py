@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import re
 import os
 from collections import namedtuple
@@ -34,9 +35,36 @@ form_data = {
     'return_to': 'https://www.pixiv.net/'
 }
 
+main_page = 'https://www.pixiv.net/'
+pic_detail_page_mode = 'https://www.pixiv.net/member_illust.php?mode=medium&illust_id={pid}'
+list_of_works_mode = 'https://www.pixiv.net/member_illust.php?id={pid}'
+# after_str_mode = 'https://i.pximg.net/img-original/img/{date}/{filename}.{file_type}'
+after_str_mode = 'https://i.pximg.net/img-original/img/{date}/{pid}_p{p}.{file_type}'
+personal_info_mode = 'https://www.pixiv.net/member.php?id={pid}'
+
+picture_num_of_each_page = 20
+
+base_folder = os.path.join(os.path.abspath(os.curdir), 'info_folder')
+
+if not os.path.exists(base_folder):
+    os.makedirs(base_folder)
+# 这个地方有问题，如果用户不修改这个值，那么所有图片都会下载到包目录里去。GG
+save_folder = os.path.join(base_folder, 'artist_work')
+
+if not os.path.exists(save_folder):
+    os.makedirs(save_folder)
+
+# cookie config
+COOKIE_FILE = os.path.join(base_folder, 'cookies')  # 'cookies\cookies'
+
+# token config
+token_path = os.path.join(base_folder, 'token')
+
+# base dir name
+# base_dir_name = os.path.abspath(os.path.dirname(__file__))
+
 
 def get_tt():
-    token_path = os.path.join(os.path.dirname(__file__), 'cookies', 'token')
     tt = ''
     try:
         with open(token_path, 'rt') as f:
@@ -58,39 +86,7 @@ bookmark_add_form_data = {
     'restrict': '0',
 }
 
-pic_detail_page_mode = 'https://www.pixiv.net/member_illust.php?mode=medium&illust_id={pid}'
-list_of_works_mode = 'https://www.pixiv.net/member_illust.php?id={pid}'
-# after_str_mode = 'https://i.pximg.net/img-original/img/{date}/{filename}.{file_type}'
-after_str_mode = 'https://i.pximg.net/img-original/img/{date}/{pid}_p{p}.{file_type}'
-personal_info_mode = 'https://www.pixiv.net/member.php?id={pid}'
-
-work_num_of_each_page = 20
-img_file_path = os.path.join(os.path.dirname(__file__), 'artist_work')
-save_folder = img_file_path
-uncategorized_save_folder = os.path.join(img_file_path, 'uncategorized_picture')
-
-# dir_list = [os.path.abspath(os.path.join(img_file_path, relative_path)) for relative_path in
-#             os.listdir(img_file_path) if os.path.isdir(os.path.abspath(os.path.join(img_file_path, relative_path)))]
-#
-# img_list = [os.path.join(dir_name, img)
-#             for dir_name in dir_list for img in os.listdir(dir_name) if img.endswith(('.png', '.jpg'))]
-
-if os.path.isdir(img_file_path):
-    img_list = [img_path for img_path in os.listdir(img_file_path) if img_path.endswith(('.png', '.jpg'))]
-    picture_id_list = [file_name.split('_')[0] for file_name in img_list]
-else:
-    img_list = []
-    picture_id_list = []
-
-# sqlite database config
-db_path = os.path.join(os.path.dirname(__file__), 'db', '_pixiv.db')  # 'db\_pixiv.db'
-
-# cookie config
-COOKIE_FILE = os.path.join(os.path.dirname(__file__), 'cookies', 'cookies')  # 'cookies\cookies'
-
-# base dir name
-base_dir_name = os.path.abspath(os.path.dirname(__file__))
-
 
 if __name__ == '__main__':
-    print(img_list)
+    pass
+

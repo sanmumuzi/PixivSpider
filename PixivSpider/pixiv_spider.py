@@ -1,5 +1,4 @@
-# # -*- coding=utf-8 -*-
-import os
+# -*- coding:utf-8 -*-
 import sys
 from collections import deque
 from http import cookiejar
@@ -7,13 +6,10 @@ from math import ceil
 
 import requests
 from lxml import etree
-from PixivSpider.setting import re_tuple, url_tuple, User_Agent, \
-    form_data, COOKIE_FILE, pic_detail_page_mode, after_str_mode, \
-    personal_info_mode, list_of_works_mode, \
-    work_num_of_each_page, img_file_path, bookmark_add_form_data
+from PixivSpider.setting import *
 
 __all__ = ['Pixiv', 'PixivDownload', 'PixivPainterInfo', 'PixivPictureInfo', 'PixivAllPictureOfPainter',
-           'PixivDownloadAlone', 'PixivOperatePicture']
+           'PixivOperatePicture', 'PixivMyBookmark']
 
 
 class Pixiv(requests.Session):  # Just achieve login function
@@ -66,15 +62,15 @@ class Pixiv(requests.Session):  # Just achieve login function
 
 
 class PixivDownload(Pixiv):  # pure download a item
-    def __init__(self, work_id=None):
+    def __init__(self, picture_id=None):
         super(PixivDownload, self).__init__()
-        self.work_id = work_id
+        self.picture_id = picture_id
         self.resp = None
         self.__picture_base_info = tuple()
 
     def get_detail_page_resp(self):
-        resp = self.get(pic_detail_page_mode.format(pid=self.work_id))
-        print(pic_detail_page_mode.format(pid=self.work_id))
+        resp = self.get(pic_detail_page_mode.format(pid=self.picture_id))
+        print(pic_detail_page_mode.format(pid=self.picture_id))
         print(resp.status_code)
         return resp
 
@@ -92,15 +88,15 @@ class PixivDownload(Pixiv):  # pure download a item
                 sys.exit(1)
         img_data = self.get(img_url, headers=headers)  # not get binary data of picture, get resp object
         if img_data.status_code == 200:
-            print('图片源页面访问成功...{}'.format(self.work_id))
+            print('图片源页面访问成功...{}'.format(self.picture_id))
             return img_data.content  # return binary data of picture
         elif img_data.status_code == 403:
-            print('被禁止，请检查是否为headers设置出错...{}'.format(self.work_id))
+            print('被禁止，请检查是否为headers设置出错...{}'.format(self.picture_id))
         else:
-            print('访问源页面出错，错误代码为:{}...{}'.format(img_data.status_code, self.work_id))
+            print('访问源页面出错，错误代码为:{}...{}'.format(img_data.status_code, self.picture_id))
         return None
 
-    def download_picture(self):
+    def download_picture(self, dirname=save_folder):
         if self.resp is None:
             self.resp = self.get_detail_page_resp()
         selector = etree.HTML(self.resp.text)
@@ -109,7 +105,7 @@ class PixivDownload(Pixiv):  # pure download a item
         except IndexError:
             raise
         else:
-            resp = self._get_img_data(pid=self.work_id, img_url=original_image)
+            resp = self._get_img_data(pid=self.picture_id, img_url=original_image)
             if resp is not None:
                 self.__picture_base_info = list(self.split_info(original_image))
                 # add painter_id to info list, just for compatibility and interface.
@@ -118,11 +114,11 @@ class PixivDownload(Pixiv):  # pure download a item
 
                 save_path = self._save_img_file(filename=self._get_complete_filename(pid, p, file_type),
                                                 img_data=resp,
-                                                dirname=img_file_path)
+                                                dirname=dirname)
                 print('下载成功...{}'.format(pid))
                 return save_path
             else:
-                print('下载失败...{}'.format(self.work_id))
+                print('下载失败...{}'.format(self.picture_id))
                 return None
 
     @staticmethod
@@ -156,20 +152,20 @@ class PixivDownload(Pixiv):  # pure download a item
             print('{}文件已经存在....'.format(filename))
             return file_path  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!临时解决方案！！！！！！！！删去
 
-    @staticmethod  # temporarily stop using.
-    def operate_dir(painter_id):  # get a specific artist's work path.
-        specific_path = os.path.join(img_file_path, str(painter_id))
-        if os.path.exists(specific_path):
-            pass
-        else:
-            try:
-                os.makedirs(specific_path)
-            except Exception:
-                raise
-        return specific_path
-
-    def get_resp_object(self):
-        return self.resp
+    # @staticmethod  # temporarily stop using.
+    # def operate_dir(painter_id):  # get a specific artist's work path.
+    #     specific_path = os.path.join(save_folder, str(painter_id))
+    #     if os.path.exists(specific_path):
+    #         pass
+    #     else:
+    #         try:
+    #             os.makedirs(specific_path)
+    #         except Exception:
+    #             raise
+    #     return specific_path
+    #
+    # def get_resp_object(self):
+    #     return self.resp
 
     @property
     def picture_base_info(self):
@@ -177,23 +173,23 @@ class PixivDownload(Pixiv):  # pure download a item
 
 
 class PixivPictureInfo(Pixiv):  # deal with specific picture information
-    def __init__(self, work_id=None, resp=None):
+    def __init__(self, picture_id=None, resp=None):
         super(PixivPictureInfo, self).__init__()
-        self.work_id = work_id
+        self.picture_id = picture_id
         self.resp = resp
 
     def get_picture_info(self):
         if self.resp is None:
-            r = self.get(pic_detail_page_mode.format(pid=self.work_id))
+            r = self.get(pic_detail_page_mode.format(pid=self.picture_id))
         else:
             r = self.resp
         info_list = []
         if r.status_code == 200:
             info_list = self._parse_picture_html(r.text)
-            info_list.insert(0, self.work_id)
+            info_list.insert(0, self.picture_id)
             info_list.append(None)  # already add to bookMark.
         else:
-            print('访问图片具体页面失败:{}'.format(self.work_id))
+            print('访问图片具体页面失败:{}'.format(self.picture_id))
         return info_list  # 如果访问失败，则返回一个空字典
 
     def _parse_picture_html(self, html_text):
@@ -230,23 +226,37 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
 
 
 class PixivOperatePicture(Pixiv):
-    def __init__(self, work_id=None):
+    def __init__(self, picture_id=None):
         super(PixivOperatePicture, self).__init__()
-        self.work_id = work_id
-        self.bookmark_form_data = bookmark_add_form_data
+        self.picture_id = picture_id
+        self.__bookmark_form_data = bookmark_add_form_data
 
-    def bookmark_add(self, comment, tag):  # 总感觉标签这里会出现玄学错误
+    def bookmark_add(self, comment='', tag=''):  # 总感觉标签这里会出现玄学错误
         headers = self.headers  # 重复提交会修改备注与标签
         headers.update({'Host': 'www.pixiv.net', 'Origin': 'https://www.pixiv.net',
                         'Referer': 'https://www.pixiv.net/bookmark_add.php?type=illust&illust_id={}'.format(
-                            self.work_id)})  # 实际上改不改headers一点也不影响程序，现阶段。
-        self.bookmark_form_data['id'] = self.work_id
-        self.bookmark_form_data['comment'] = comment  # 备注
-        self.bookmark_form_data['tag'] = tag  # 标签，空格分割
-        r = self.post('https://www.pixiv.net/bookmark_add.php?id={}'.format(self.work_id), headers=headers,
-                      data=self.bookmark_form_data)
-        print(r.status_code)
+                            self.picture_id)})  # 实际上改不改headers一点也不影响程序，现阶段。
+        self.__bookmark_form_data['id'] = self.picture_id
+        self.__bookmark_form_data['comment'] = comment  # 备注
+        self.__bookmark_form_data['tag'] = tag  # 标签，空格分割
+
+        r = self.post('https://www.pixiv.net/bookmark_add.php?id={}'.format(self.picture_id), headers=headers,
+                      data=self.__bookmark_form_data)
+        if r.status_code != 200:
+            self.operate_tt()
+            r = self.post('https://www.pixiv.net/bookmark_add.php?id={}'.format(self.picture_id), headers=headers,
+                          data=self.__bookmark_form_data)
+        return r.status_code == 200
         # 点了按钮，貌似可以得到喜欢数，不过貌似必要不大。
+
+    def operate_tt(self):  # 通过访问主页更新tt的值
+        r = self.get(main_page)
+        selector = etree.HTML(r.text)
+        tt = selector.xpath('//input[@name="tt"]/@value')[0]
+        with open(token_path, 'wt') as f:  # 修改token文件中的tt
+            f.write(tt)
+        self.__bookmark_form_data['tt'] = tt  # 修改setting和实例属性中的tt
+        bookmark_add_form_data['tt'] = tt
 
     def like_add(self):
         pass
@@ -272,7 +282,7 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
         else:
             return None
 
-    def get_painter_id_info(self):  # main function (DEFAULT: Get information from personal pages)
+    def get_painter_info(self):  # main function (DEFAULT: Get information from personal pages)
         r = self.get(personal_info_mode.format(pid=self.painter_id))
         info_dict = self._parse_html(r.text)
         info_dict['ID'] = self.painter_id
@@ -307,36 +317,36 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
 class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific artist.
     def __init__(self, painter_id=None):
         super(PixivAllPictureOfPainter, self).__init__()
-        self.work_num = None
-        self.work_deque = deque()
+        self.picture_num = None
+        self.picture_deque = deque()
         self.painter_id = painter_id
         # self.already_download_picture = find_all_picture_id(conn)
         self.already_download_picture = []
-        self.work_num = 0
+        self.picture_num = 0
         self.page_num = 0
         self.main_page = list_of_works_mode.format(pid=painter_id)
         # self.painter_dirname = self.operate_dir(painter_id)
         # self.painter_dir_exist = False
 
-    # def _get_work_num(self):  # 其实真正对该程序有用的是page_num, 思考work_num 可以怎么用
+    # def _get_picture_num(self):  # 其实真正对该程序有用的是page_num, 思考picture_num 可以怎么用
     #     list_of_works = self.get(list_of_works_mode.format(pid=self.painter_id))
     #     # print(list_of_works.text)
     #     selector = etree.HTML(list_of_works.text)
     #     try:
     #         print(self.painter_id)
-    #         work_num = selector.xpath('//span[@class="count-badge"]/text()')[0]
+    #         picture_num = selector.xpath('//span[@class="count-badge"]/text()')[0]
     #     except IndexError:
-    #         print('Get work_num failure.')
+    #         print('Get picture_num failure.')
     #         raise
     #     else:
-    #         return selector, int(re_tuple.num.findall(work_num)[0])
+    #         return selector, int(re_tuple.num.findall(picture_num)[0])
 
     def _get_work_info(self):  # Add data tuple to the work queue.
         if self.page_num >= 1:
             resp_text = self.get(self.main_page).text
             temp_data_list = self._get_each_work_info(etree.HTML(resp_text))
             for data in temp_data_list:
-                self.work_deque.append(data)
+                self.picture_deque.append(data)
         if self.page_num >= 2:
             base_url = list_of_works_mode.format(pid=self.painter_id)
             for each_page in range(2, self.page_num + 1):
@@ -348,7 +358,7 @@ class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific art
                 else:
                     temp_data_list = self._get_each_work_info(etree.HTML(result.text))
                     for data in temp_data_list:
-                        self.work_deque.append(data)  # only have picture id
+                        self.picture_deque.append(data)  # only have picture id
 
     def _get_each_work_info(self, selector):  # return a work data of picture.
         original_img_url = selector.xpath('//img[@data-src]/@data-src')
@@ -365,8 +375,10 @@ class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific art
         return temp_data_list
 
     def get_work_of_painter(self):  # 异步之后，这个函数八成废掉
+        get_page_num(self)
         self._get_work_info()
-        for picture_id in self.work_deque:
+        print(self.picture_deque)
+        for picture_id in self.picture_deque:
             temp = PixivDownload(picture_id)  # 这种实现方式，真的有毒。。。。
             temp.login()
             temp.download_picture()
@@ -379,20 +391,20 @@ def get_page_num(cls):
     resp = cls.get(getattr(cls, 'main_page'))
     selector = etree.HTML(resp.text)
     try:
-        work_num_text = selector.xpath('//span[@class="count-badge"]/text()')[0]
+        picture_num_text = selector.xpath('//span[@class="count-badge"]/text()')[0]
     except IndexError:
-        print('Get work_num failure.')
+        print('Get picture_num failure.')
         raise
     else:
-        work_num = int(re_tuple.num.findall(work_num_text)[0])
-        page_num = int(ceil(work_num / work_num_of_each_page))
+        picture_num = int(re_tuple.num.findall(picture_num_text)[0])
+        page_num = int(ceil(picture_num / picture_num_of_each_page))
         setattr(cls, 'page_num', page_num)  # 这样动态添加属性真的好吗？？？
-        setattr(cls, 'work_num', work_num)
+        setattr(cls, 'picture_num', picture_num)
 
 
 class PixivDownloadAlone(PixivDownload, PixivPainterInfo, PixivPictureInfo):  # Give the work ID and get the artist ID
-    def __init__(self, work_id):
-        super(PixivDownloadAlone, self).__init__(work_id=work_id)
+    def __init__(self, picture_id):
+        super(PixivDownloadAlone, self).__init__(picture_id=picture_id)
         self.__form_data = bookmark_add_form_data
         # self.resp = self.get_detail_page_resp()  # 加入数据库之后，这一项将不是必要的, 会在登录之前初始化，GG
         self.resp = None
@@ -402,7 +414,7 @@ class PixivDownloadAlone(PixivDownload, PixivPainterInfo, PixivPictureInfo):  # 
             self.resp = self.get_detail_page_resp()
         selector = etree.HTML(self.resp.text)
         try:
-            pid = selector.xpath('//a[@class="user-name"]/@href')[0].split('=')[-1]  # work_id -> artist_id
+            pid = selector.xpath('//a[@class="user-name"]/@href')[0].split('=')[-1]  # picture_id -> artist_id
         except IndexError:
             raise
         else:
@@ -414,7 +426,7 @@ class PixivMyBookmark(Pixiv):
     def __init__(self):
         super(PixivMyBookmark, self).__init__()
         self.main_page = 'https://www.pixiv.net/bookmark.php?rest=show'
-        self.work_num = 0
+        self.picture_num = 0
         self.page_num = 0
         self.picture_deque = deque()
 
@@ -472,24 +484,21 @@ class PixivMyBookmark(Pixiv):
                 #     except IndexError:
                 #         base_selector = li.xpath('a[@class="work  _work ugoku-illust "]'
                 #                                  '/div[@class="_layout-thumbnail"]')[0]  # 动态图片
-        return temp_data_list
+        return temp_data_list  # 这里可以写入 .xlsx 文件，以便后期分析使用
 
 
 class PixivBase(Pixiv):
     def __init__(self):
         super(PixivBase, self).__init__()
 
-    # def
-
 
 if __name__ == "__main__":
-    # x = PixivMyBookmark()
+    # x = PixivPainterInfo(picture_id=66318681)
     # x.login()
-    # get_page_num(x)
-    # x.get_picture_info()
-    # pass
-    x = PixivPainterInfo(picture_id=66318681)
-    x.login()
-    x.get_painter_info_from_work_detail_page()
+    # print(x.get_painter_info_from_work_detail_page())
 
-# sometimes i'm will fall in ...
+    x = PixivOperatePicture(67803290)
+    x.login()
+    print(x.bookmark_add())
+
+# sometimes naive.
