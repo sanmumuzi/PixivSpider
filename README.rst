@@ -40,7 +40,7 @@ Installation
 
 Documentation
 ===============
-In progress
+In progress: http://pixivspider.readthedocs.io/zh/latest/
 
 How to Contribute
 =================
