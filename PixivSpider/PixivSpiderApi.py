@@ -4,6 +4,7 @@
 # sys.path.insert(0, os.path.abspath(os.pardir))  # only to test.
 
 from PixivSpider.pixiv_spider import *
+from PixivSpider.decorators import timethis
 
 
 __all__ = ['get_a_picture', 'get_picture_info', 'get_painter_info', 'get_all_picture_of_painter', 'add_bookmark']
@@ -15,6 +16,7 @@ def init_class(cls, account=None, password=None, **kwargs):  # Initialize all cl
     return instance
 
 
+@timethis
 def get_a_picture(picture_id, dirname=None, account=None, password=None):
     x = init_class(PixivDownload, account, password, picture_id=picture_id)  # 使用下载类
     if dirname is not None:
@@ -32,6 +34,7 @@ def get_a_picture(picture_id, dirname=None, account=None, password=None):
     # note: painter_id is always None at this version.
 
 
+@timethis
 def get_picture_info(picture_id, account=None, password=None):
     x = init_class(PixivPictureInfo, account, password, picture_id=picture_id)  # 使用图片信息类
     return x.get_picture_info()
@@ -40,6 +43,7 @@ def get_picture_info(picture_id, account=None, password=None):
     # note： sign of bookmark is always None at this version.
 
 
+@timethis
 def add_bookmark(picture_id, comment='', tag='', account=None, password=None):
     try:
         comment, tag = str(comment), str(tag)  # Detect whether tags and comments are strings.
@@ -53,6 +57,7 @@ def add_bookmark(picture_id, comment='', tag='', account=None, password=None):
         # code:200 -> success -> True, code: not 200 -> failure -> False
 
 
+@timethis
 def get_painter_info(painter_id=None, picture_id=None, account=None, password=None):
     x = init_class(PixivPainterInfo, account, password, painter_id=painter_id, picture_id=picture_id)
     # use painter information class.
@@ -66,6 +71,7 @@ def get_painter_info(painter_id=None, picture_id=None, account=None, password=No
         return None  # When the parameter is wrong, return None
 
 
+@timethis
 def get_all_picture_of_painter(painter_id=None, picture_id=None, account=None, password=None):
     if painter_id is not None or picture_id is not None:
         if painter_id is None:
@@ -85,6 +91,7 @@ if __name__ == '__main__':
     # print(add_bookmark(58501385))
     # print(get_painter_info(picture_id=58501385))
     # get_all_picture_of_painter(picture_id=58501385)
+    # print(get_a_picture.__module__, get_a_picture.__class__, get_a_picture.__name__)
     pass
 
     # 仰望高端操作，看看能不能把测试写进注释里
