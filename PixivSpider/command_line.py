@@ -91,7 +91,7 @@ def print_picture_info(picture_info):
     print('The current picture\'s introduction is {}.'.format(picture_introduction))
     if alreadymark is None:
         alreadymark = 'The feather is not yet realized.'
-    print('Whether the current picture is bookmarked : {]'.format(alreadymark))
+    print('Whether the current picture is bookmarked : {}'.format(alreadymark))
 
 
 def print_painter_info(painter_info):
