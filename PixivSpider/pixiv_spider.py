@@ -9,7 +9,7 @@ from lxml import etree
 from PixivSpider.setting import *
 
 __all__ = ['Pixiv', 'PixivDownload', 'PixivPainterInfo', 'PixivPictureInfo', 'PixivAllPictureOfPainter',
-           'PixivOperatePicture', 'PixivMyBookmark']
+           'PixivOperatePicture', 'PixivBookmark']
 
 
 class Pixiv(requests.Session):  # Just achieve login function
@@ -29,6 +29,14 @@ class Pixiv(requests.Session):  # Just achieve login function
         else:
             return post_key
 
+    @staticmethod
+    def _get_my_id(cookies_file=COOKIE_FILE):
+        cookies = cookiejar.LWPCookieJar()
+        cookies.load(cookies_file, ignore_discard=True)
+        cookies_dict = requests.utils.dict_from_cookiejar(cookies)  # 加载cookies文件，转为字典
+        account_id = cookies_dict['PHPSESSID'].split('_')[0]  # 提取account id
+        return account_id
+
     def login_with_cookies(self):
         try:
             self.cookies.load(filename=COOKIE_FILE, ignore_discard=True)
@@ -36,9 +44,11 @@ class Pixiv(requests.Session):  # Just achieve login function
             return False
         else:
             # return True  # don't check out login status.
-            if self.already_login():
-                return True
-            return False
+            # 因为太耗资源暂时关闭这个已登陆的检测...
+            # if self.already_login():
+            #     return True
+            # return False
+            return True
 
     def login_with_account(self, pixiv_id=None, pixiv_passwd=None):
         self.__form_data['pixiv_id'] = pixiv_id
@@ -46,7 +56,11 @@ class Pixiv(requests.Session):  # Just achieve login function
         self.__form_data['post_key'] = self._get_postkey()
         result = self.post(url_tuple.post_url, data=self.__form_data)
         if result.status_code == 200:
+            self.get(main_page)
+            # 先访问下页面，该方式下保存的cookies，其中信息更多，且包含真正的user_id,体现为PHPSESSID
+            # 个人信息页面的Pixiv id 为假
             self.cookies.save(ignore_discard=True)
+            # print(self._get_my_id())
             return True
         return False
 
@@ -57,8 +71,8 @@ class Pixiv(requests.Session):  # Just achieve login function
             return self.login_with_account(pixiv_id, pixiv_passwd)
 
     def already_login(self):
-        status = self.get(url_tuple.setting_url, allow_redirects=False).status_code
-        return status == 200
+        resp = self.get(url_tuple.setting_url, allow_redirects=False)
+        return resp.status_code == 200
 
 
 class PixivDownload(Pixiv):  # pure download a item
@@ -422,9 +436,9 @@ class PixivDownloadAlone(PixivDownload, PixivPainterInfo, PixivPictureInfo):  # 
             return pid
 
 
-class PixivMyBookmark(Pixiv):
+class PixivBookmark(Pixiv):
     def __init__(self):
-        super(PixivMyBookmark, self).__init__()
+        super(PixivBookmark, self).__init__()
         self.main_page = 'https://www.pixiv.net/bookmark.php?rest=show'
         self.picture_num = 0
         self.page_num = 0
