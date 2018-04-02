@@ -508,9 +508,6 @@ class PixivBase(Pixiv):
 
 
 if __name__ == "__main__":
-    # pass
-    x = PixivBookmark(painter_id=1980643)
-    x.login('332627946@qq.com', '13752016524')
-    x.get_bookmark_info()
+    pass
 
 # sometimes naive.
