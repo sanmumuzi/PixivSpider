@@ -16,7 +16,8 @@ re_tuple = RE_namedtuple(
     post_key=re.compile(r'name="post_key" value="(.*?)">'),
     date=re.compile(r'img/(.*)/'),  # 贪婪匹配
     pid=re.compile(r'/([0-9]+)_'),
-    num=re.compile(r'^([0-9]*) results'),  # 放到外文页面上必炸
+    num=re.compile(r'^([0-9]*).?results'),  # 放到外文页面上必炸
+    # note: '?' is necessary! work_page: xxx results bookmark_page: xxxresults
     p=re.compile(r'_p(\d+)_'),
     p_from_source=re.compile(r'_p(\d)\.')
 )

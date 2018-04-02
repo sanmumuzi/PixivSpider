@@ -412,6 +412,7 @@ def get_page_num(cls):
     else:
         picture_num = int(re_tuple.num.findall(picture_num_text)[0])
         page_num = int(ceil(picture_num / picture_num_of_each_page))
+        print(picture_num, page_num)
         setattr(cls, 'page_num', page_num)  # 这样动态添加属性真的好吗？？？
         setattr(cls, 'picture_num', picture_num)
 
@@ -437,23 +438,24 @@ class PixivDownloadAlone(PixivDownload, PixivPainterInfo, PixivPictureInfo):  # 
 
 
 class PixivBookmark(Pixiv):
-    def __init__(self):
+    def __init__(self, painter_id=None):
         super(PixivBookmark, self).__init__()
-        self.main_page = 'https://www.pixiv.net/bookmark.php?rest=show'
+        self.painter_id = painter_id if painter_id else self._get_my_id()  # 默认为自己的ID
+        self.main_page = 'https://www.pixiv.net/bookmark.php?id={}&rest=show'.format(self.painter_id)
         self.picture_num = 0
         self.page_num = 0
-        self.picture_deque = deque()
+        self.picture_deque = deque()  # 存储所有书签信息
 
     def get_html(self):  # a[class="bookmark-count _ui-tooltip"]  # ???喵喵喵???
         r = self.get(self.main_page)  # 要不要禁止重定向
 
-    def get_picture_info(self):  # 其实 p=1 这个参数可以传，不像作品主页一样会报错，所以这里可以简化代码
+    def get_bookmark_info(self):  # 其实 p=1 这个参数可以传，不像作品主页一样会报错，所以这里可以简化代码
+        get_page_num(self)  # 动态增加属性: 1. self.page_num 2. self.picture_num
         if self.page_num >= 1:
             resp_text = self.get(self.main_page).text
             selector = etree.HTML(resp_text).xpath('//ul[@class="_image-items js-legacy-mark-unmark-list"]')[0]
-            temp_data_list = self._get_each_picture_info(selector)
-            for data in temp_data_list:
-                self.picture_deque.append(data)
+            temp_data_list = self._get_each_bookmark_info(selector)
+            self.picture_deque.extend(temp_data_list)
         sign = 1
         if self.page_num >= 2:
             for p in range(2, self.page_num + 1):
@@ -465,14 +467,13 @@ class PixivBookmark(Pixiv):
                     raise
                 else:
                     selector = etree.HTML(resp_text).xpath('//ul[@class="_image-items js-legacy-mark-unmark-list"]')[0]
-                    temp_data_list = self._get_each_picture_info(selector)
+                    temp_data_list = self._get_each_bookmark_info(selector)
                     self.picture_deque.extend(temp_data_list)
-        print(self.picture_deque)
+        return self.picture_deque  # 将全部数据返回
 
     @staticmethod
-    def _get_each_picture_info(selector):
+    def _get_each_bookmark_info(selector):
         all_li = selector.xpath('li[@class="image-item"]')
-        print(all_li)
         temp_data_list = []
         for li in all_li:
             try:
@@ -507,6 +508,9 @@ class PixivBase(Pixiv):
 
 
 if __name__ == "__main__":
-    pass
+    # pass
+    x = PixivBookmark(painter_id=1980643)
+    x.login('332627946@qq.com', '13752016524')
+    x.get_bookmark_info()
 
 # sometimes naive.

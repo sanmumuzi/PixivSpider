@@ -3,9 +3,8 @@
 # import sys, os
 # sys.path.insert(0, os.path.abspath(os.pardir))  # only to test.
 
-from PixivSpider.pixiv_spider import *
 from PixivSpider.decorators import timethis
-
+from PixivSpider.pixiv_spider import *
 
 __all__ = ['get_a_picture', 'get_picture_info', 'get_painter_info', 'get_all_picture_of_painter', 'add_bookmark']
 
@@ -85,6 +84,38 @@ def get_all_picture_of_painter(painter_id=None, picture_id=None, account=None, p
         return None
 
 
+@timethis
+def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None):
+    """
+    Get all the bookmarks of a specified user.
+
+    :param painter_id: Specified user.
+    :param picture_id: Specified user who created this picture.
+    :param account: Website account for pixiv.net.
+    :param password: Website password for pixiv.net.
+    :return:
+        A deque consist of many list that consist of
+        picture title, picture tags, picture id, painter id, painter name, marked number.
+        For example:
+
+        deque([('#20170827 フランケンシュタイン',
+              'Fate/Apocrypha フランケンシュタイン(Fate) ふつくしい Fate/Apocrypha10000users入り',
+              '64654006', '21848', 'RA', '16067'), ('EXHIBITION',
+              'DOGS RWBY セブンスドラゴン2020 セブンスドラゴンⅢ キズナイーバー ジョーカー・ゲーム 集合絵 三輪士郎 本家 コラボ',
+              '64584518', '38022', '三輪', '21669')])
+    """
+
+    if painter_id is not None or picture_id is not None:
+        if painter_id is None:
+            x = init_class(PixivPainterInfo, account, password, picture_id=picture_id)
+            painter_id = x.get_painter_info_from_work_detail_page()
+        y = init_class(PixivBookmark, account, password, painter_id=painter_id)
+        return y.get_bookmark_info()  # get all bookmarks.
+    else:
+        print('painter id and picture id have at least one.')
+        return None
+
+
 if __name__ == '__main__':
     # get_a_picture(58501385)
     # print(get_picture_info(58501385))
@@ -92,7 +123,6 @@ if __name__ == '__main__':
     # print(get_painter_info(picture_id=58501385))
     # get_all_picture_of_painter(picture_id=58501385)
     # print(get_a_picture.__module__, get_a_picture.__class__, get_a_picture.__name__)
+    # x = get_bookmarks(painter_id=1980643)
     pass
-
     # 仰望高端操作，看看能不能把测试写进注释里
-
