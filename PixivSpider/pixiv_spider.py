@@ -202,8 +202,8 @@ class PixivDownload(Pixiv):  # pure download a item
     #             raise
     #     return specific_path
     #
-    # def get_resp_object(self):
-    #     return self.resp
+    def get_resp_text(self):  # return picture page html text
+        return self.resp.text
 
     @property
     def picture_base_info(self):

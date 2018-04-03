@@ -33,7 +33,8 @@ def get_a_picture(picture_id, dirname=None, account=None, password=None, info_di
         print('Picture save path: {}'.format(save_path))
     else:
         print('Download failed: {}...'.format(picture_id))
-    return x.picture_base_info
+    resp_text = x.get_resp_text()
+    return [x.picture_base_info, save_path, resp_text]
     # picture base information:
     # five elements list: picture_id, painter_id, p, date, picture file type
     # note: painter_id is always None at this version.
