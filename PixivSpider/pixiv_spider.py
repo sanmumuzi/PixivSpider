@@ -307,17 +307,14 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
 
     # Abandoned, we shouldn't premature optimization!!!
     def get_painter_id_from_work_detail_page(self, resp=None):
-        if self.picture_id is not None:
-            if resp is None:
-                resp = self.get(pic_detail_page_mode.format(pid=self.picture_id))
-            selector = etree.HTML(resp.text)
-            # painter_name = selector.xpath('//a[@class="user-name"]/@title')[0]
-            painter_id = selector.xpath('//a[@class="user-name"]/@href')[0].split('=')[-1]
-            self.painter_id = painter_id
-            return painter_id
-            # return self.get_painter_id_info()  # get painter detail info.
-        else:
-            return None
+        if resp is None and self.picture_id:
+            resp = self.get(pic_detail_page_mode.format(pid=self.picture_id)).text
+        selector = etree.HTML(resp)
+        # painter_name = selector.xpath('//a[@class="user-name"]/@title')[0]
+        painter_id = selector.xpath('//a[@class="user-name"]/@href')[0].split('=')[-1]
+        self.painter_id = painter_id
+        return painter_id
+        # return self.get_painter_id_info()  # get painter detail info.
 
     def get_painter_info(self):  # main function (DEFAULT: Get information from personal pages)
         r = self.get(personal_info_mode.format(pid=self.painter_id))
