@@ -6,6 +6,7 @@ from math import ceil
 
 import requests
 from lxml import etree
+
 from PixivSpider.setting import *
 
 __all__ = ['Pixiv', 'PixivDownload', 'PixivPainterInfo', 'PixivPictureInfo', 'PixivAllPictureOfPainter',
@@ -134,6 +135,29 @@ class PixivDownload(Pixiv):  # pure download a item
             else:
                 print('下载失败...{}'.format(self.picture_id))
                 return None
+
+    def download_picture_directly(self, dirname=save_folder, **kwargs):
+        """
+        Download pictures via key information.
+
+        :param dirname: The directory that saves pictures.
+        :param kwargs: Four keyword parameters about picture basic information.
+        :return: The file path of the downloaded picture.
+        """
+        try:
+            resp = self._get_img_data(pid=kwargs['pid'], p=kwargs['p'], date=kwargs['date'],
+                                      file_type=kwargs['file_type'])
+        except Exception as e:
+            print('下载失败...{}'.format(kwargs['pid']))
+            return None
+        else:
+            save_path = self._save_img_file(
+                filename=self._get_complete_filename(kwargs['pid'], kwargs['p'], kwargs['file_type']),
+                img_data=resp,
+                dirname=dirname
+            )
+            print('下载成功...{}'.format(kwargs['pid']))
+            return save_path
 
     @staticmethod
     def split_info(url):
