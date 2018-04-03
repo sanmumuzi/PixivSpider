@@ -175,7 +175,7 @@ class PixivDownload(Pixiv):  # pure download a item
 
     @staticmethod
     def _get_complete_filename(pid, p, file_type):
-        return pid + '_p' + p + '.' + file_type
+        return str(pid) + '_p' + str(p) + '.' + str(file_type)
 
     @staticmethod
     def _save_img_file(filename, img_data, dirname):
