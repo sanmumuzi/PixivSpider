@@ -307,7 +307,7 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
         self.picture_id = picture_id
 
     # Abandoned, we shouldn't premature optimization!!!
-    def get_painter_info_from_work_detail_page(self, resp=None):
+    def get_painter_id_from_work_detail_page(self, resp=None):
         if self.picture_id is not None:
             if resp is None:
                 resp = self.get(pic_detail_page_mode.format(pid=self.picture_id))
