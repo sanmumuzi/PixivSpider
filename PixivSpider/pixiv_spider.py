@@ -211,24 +211,23 @@ class PixivDownload(Pixiv):  # pure download a item
 
 
 class PixivPictureInfo(Pixiv):  # deal with specific picture information
-    def __init__(self, picture_id=None, resp=None):
+    def __init__(self, picture_id=None):
         super(PixivPictureInfo, self).__init__()
         self.picture_id = picture_id
-        self.resp = resp
 
-    def get_picture_info(self):
-        if self.resp is None:
-            r = self.get(pic_detail_page_mode.format(pid=self.picture_id))
-        else:
-            r = self.resp
+    def get_picture_info(self, resp=None):
         info_list = []
-        if r.status_code == 200:
-            info_list = self._parse_picture_html(r.text)
-            info_list.insert(0, self.picture_id)
-            info_list.append(None)  # already add to bookMark.
-        else:
-            print('访问图片具体页面失败:{}'.format(self.picture_id))
-        return info_list  # 如果访问失败，则返回一个空字典
+        if resp is None:
+            r = self.get(pic_detail_page_mode.format(pid=self.picture_id))
+            if r.status_code == 200:
+                resp = r.text
+            else:
+                print('访问图片具体页面失败:{}'.format(self.picture_id))
+                return info_list  # 如果访问失败，则返回一个空列表
+        info_list = self._parse_picture_html(resp)
+        info_list.insert(0, self.picture_id)
+        info_list.append(None)  # already add to bookMark.
+        return info_list
 
     def _parse_picture_html(self, html_text):
         # data_dict = {}

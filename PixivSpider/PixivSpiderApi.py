@@ -6,7 +6,8 @@
 from PixivSpider.decorators import timethis
 from PixivSpider.pixiv_spider import *
 
-__all__ = ['get_a_picture', 'get_picture_info', 'get_painter_info', 'get_all_picture_of_painter', 'add_bookmark']
+__all__ = ['get_a_picture', 'get_picture_info', 'get_painter_info', 'get_all_picture_of_painter', 'add_bookmark',
+           'get_painter_id']
 
 
 def init_class(cls, account=None, password=None, **kwargs):  # Initialize all classes that need to be logged in.
@@ -40,11 +41,10 @@ def get_a_picture(picture_id, dirname=None, account=None, password=None, info_di
     # note: painter_id is always None at this version.
 
 
-
 @timethis
-def get_picture_info(picture_id, account=None, password=None):
+def get_picture_info(picture_id, resp=None, account=None, password=None):
     x = init_class(PixivPictureInfo, account, password, picture_id=picture_id)  # 使用图片信息类
-    return x.get_picture_info()
+    return x.get_picture_info(resp=resp)
     # picture information:
     # four elements list: picture_id, title, introduction, sign of bookmark
     # note： sign of bookmark is always None at this version.
