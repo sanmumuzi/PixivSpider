@@ -203,7 +203,12 @@ class PixivDownload(Pixiv):  # pure download a item
     #     return specific_path
     #
     def get_resp_text(self):  # return picture page html text
-        return self.resp.text
+        try:
+            return self.resp.text
+        except AttributeError as e:
+            print(e)
+            print('使用了download_picture_directly函数，没有resp')
+            return None
 
     @property
     def picture_base_info(self):

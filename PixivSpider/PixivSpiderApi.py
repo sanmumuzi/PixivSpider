@@ -18,7 +18,7 @@ def init_class(cls, account=None, password=None, **kwargs):  # Initialize all cl
 
 @timethis
 def get_a_picture(picture_id, dirname=None, account=None, password=None, info_dict=None):
-    x = init_class(PixivDownload, account, password, picture_id=picture_id)  # 使用下载类sssss
+    x = init_class(PixivDownload, account, password, picture_id=picture_id)  # 使用下载类
     if info_dict is None:
         if dirname is not None:
             save_path = x.download_picture(dirname)  # 用户自己特定路径
@@ -42,7 +42,7 @@ def get_a_picture(picture_id, dirname=None, account=None, password=None, info_di
 
 
 @timethis
-def get_picture_info(picture_id, resp=None, account=None, password=None):
+def get_picture_info(picture_id=None, resp=None, account=None, password=None):
     x = init_class(PixivPictureInfo, account, password, picture_id=picture_id)  # 使用图片信息类
     return x.get_picture_info(resp=resp)
     # picture information:
