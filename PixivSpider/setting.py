@@ -4,7 +4,7 @@ import os
 from collections import namedtuple
 
 Url_namedtuple = namedtuple('Url', 'login_url post_url setting_url')
-RE_namedtuple = namedtuple('RE_dict', 'post_key date pid p num p_from_source')
+RE_namedtuple = namedtuple('RE_dict', 'post_key date picture_id p num p_from_source')
 
 url_tuple = Url_namedtuple(
     login_url='https://accounts.pixiv.net/login',
@@ -15,7 +15,7 @@ url_tuple = Url_namedtuple(
 re_tuple = RE_namedtuple(
     post_key=re.compile(r'name="post_key" value="(.*?)">'),
     date=re.compile(r'img/(.*)/'),  # 贪婪匹配
-    pid=re.compile(r'/([0-9]+)_'),
+    picture_id=re.compile(r'/([0-9]+)_'),
     num=re.compile(r'^([0-9]*).?results'),  # 放到外文页面上必炸
     # note: '?' is necessary! work_page: xxx results bookmark_page: xxxresults
     p=re.compile(r'_p(\d+)_'),
@@ -37,11 +37,11 @@ form_data = {
 }
 
 main_page = 'https://www.pixiv.net/'
-pic_detail_page_mode = 'https://www.pixiv.net/member_illust.php?mode=medium&illust_id={pid}'
-list_of_works_mode = 'https://www.pixiv.net/member_illust.php?id={pid}'
+picture_detail_page_mode = 'https://www.pixiv.net/member_illust.php?mode=medium&illust_id={picture_id}'
+list_of_works_mode = 'https://www.pixiv.net/member_illust.php?id={painter_id}'
 # after_str_mode = 'https://i.pximg.net/img-original/img/{date}/{filename}.{file_type}'
-after_str_mode = 'https://i.pximg.net/img-original/img/{date}/{pid}_p{p}.{file_type}'
-personal_info_mode = 'https://www.pixiv.net/member.php?id={pid}'
+after_str_mode = 'https://i.pximg.net/img-original/img/{date}/{picture_id}_p{p}.{file_type}'
+personal_info_mode = 'https://www.pixiv.net/member.php?id={painter_id}'
 
 picture_num_of_each_page = 20
 

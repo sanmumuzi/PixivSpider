@@ -84,20 +84,20 @@ class PixivDownload(Pixiv):  # pure download a item
         self.__picture_base_info = tuple()
 
     def get_detail_page_resp(self):
-        resp = self.get(pic_detail_page_mode.format(pid=self.picture_id))
-        print(pic_detail_page_mode.format(pid=self.picture_id))
+        resp = self.get(picture_detail_page_mode.format(picture_id=self.picture_id))
+        print(picture_detail_page_mode.format(picture_id=self.picture_id))
         print(resp.status_code)
         return resp
 
-    def _get_img_data(self, pid=None, date=None, p=None, file_type=None, img_url=None):
+    def _get_img_data(self, picture_id=None, date=None, p=None, file_type=None, img_url=None):
         headers = self.headers
         headers['Host'] = 'www.pixiv.net'  # modify the most important headers info
-        headers['Referer'] = pic_detail_page_mode.format(pid=pid)
+        headers['Referer'] = picture_detail_page_mode.format(picture_id=picture_id)
         if img_url is None:  # Not yet realized.
-            if pid is not None and date is not None and p is not None and file_type is not None:
+            if picture_id is not None and date is not None and p is not None and file_type is not None:
                 # I think it should have a better way to achieve this function
                 # instead of using four 'not None' judgments.
-                img_url = self._get_real_url(pid, date, p, file_type)
+                img_url = self._get_real_url(picture_id, date, p, file_type)
             else:
                 print('{}参数输入错误,无法构造url...'.format(self._get_img_data.__name__))
                 sys.exit(1)
@@ -120,17 +120,17 @@ class PixivDownload(Pixiv):  # pure download a item
         except IndexError:
             raise
         else:
-            resp = self._get_img_data(pid=self.picture_id, img_url=original_image)
+            resp = self._get_img_data(picture_id=self.picture_id, img_url=original_image)
             if resp is not None:
                 self.__picture_base_info = list(self.split_info(original_image))
                 # add painter_id to info list, just for compatibility and interface.
                 self.__picture_base_info.insert(1, None)
-                pid, p, date, file_type = self.split_info(original_image)
+                picture_id, p, date, file_type = self.split_info(original_image)
 
-                save_path = self._save_img_file(filename=self._get_complete_filename(pid, p, file_type),
+                save_path = self._save_img_file(filename=self._get_complete_filename(picture_id, p, file_type),
                                                 img_data=resp,
                                                 dirname=dirname)
-                print('下载成功...{}'.format(pid))
+                print('下载成功...{}'.format(picture_id))
                 return save_path
             else:
                 print('下载失败...{}'.format(self.picture_id))
@@ -145,37 +145,41 @@ class PixivDownload(Pixiv):  # pure download a item
         :return: The file path of the downloaded picture.
         """
         try:
-            resp = self._get_img_data(pid=kwargs['pid'], p=kwargs['p'], date=kwargs['date'],
-                                      file_type=kwargs['file_type'])
+            picture_id, p, date, file_type = kwargs['picture_Id'], kwargs['p'], kwargs['date'], kwargs['file_type']
+        except KeyError:
+            print('提交的参数有错误...{}'.format(kwargs))
+            raise
+        try:
+            resp = self._get_img_data(picture_id=picture_id, p=p, date=date, file_type=file_type)
         except Exception as e:
-            print('下载失败...{}'.format(kwargs['pid']))
+            print('下载失败...{}'.format(picture_id))
             return None
         else:
             save_path = self._save_img_file(
-                filename=self._get_complete_filename(kwargs['pid'], kwargs['p'], kwargs['file_type']),
+                filename=self._get_complete_filename(picture_id, p, file_type),
                 img_data=resp,
                 dirname=dirname
             )
-            print('下载成功...{}'.format(kwargs['pid']))
+            print('下载成功...{}'.format(picture_id))
             return save_path
 
     @staticmethod
     def split_info(url):
-        pid = re_tuple.pid.findall(url)[0]
+        picture_id = re_tuple.picture_id.findall(url)[0]
         p = re_tuple.p_from_source.findall(url)[0]
         date = re_tuple.date.findall(url)[0]
         file_type = url.split('.')[-1]
-        print(pid, p, date, file_type)
-        return pid, p, date, file_type  # return four elements tuple
+        print(picture_id, p, date, file_type)
+        return picture_id, p, date, file_type  # return four elements tuple
 
     @staticmethod
-    def _get_real_url(pid, date, p, file_type):
-        work_img_url = after_str_mode.format(date=date, pid=pid, p=p, file_type=file_type)
+    def _get_real_url(picture_id, date, p, file_type):
+        work_img_url = after_str_mode.format(date=date, picture_id=picture_id, p=p, file_type=file_type)
         return work_img_url
 
     @staticmethod
-    def _get_complete_filename(pid, p, file_type):
-        return str(pid) + '_p' + str(p) + '.' + str(file_type)
+    def _get_complete_filename(picture_id, p, file_type):
+        return str(picture_id) + '_p' + str(p) + '.' + str(file_type)
 
     @staticmethod
     def _save_img_file(filename, img_data, dirname):
@@ -223,7 +227,7 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
     def get_picture_info(self, resp=None):
         info_list = []
         if resp is None:
-            r = self.get(pic_detail_page_mode.format(pid=self.picture_id))
+            r = self.get(picture_detail_page_mode.format(picture_id=self.picture_id))
             if r.status_code == 200:
                 resp = r.text
             else:
@@ -235,7 +239,6 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
         return info_list
 
     def _parse_picture_html(self, html_text):
-        # data_dict = {}
         data_list = []
         selector = etree.HTML(html_text)
         try:
@@ -244,9 +247,6 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
             print('Get work_info section failure.')
             raise
         else:
-            # data_dict['title'] = self._parse_work_title(section)
-            # data_dict['introduction'] = self._parse_work_introduction(section)
-            # return data_dict
             data_list.append(self._parse_work_title(section))
             data_list.append(self._parse_work_introduction(section))
         return data_list
@@ -313,7 +313,7 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
     # Abandoned, we shouldn't premature optimization!!!
     def get_painter_id_from_work_detail_page(self, resp=None):
         if resp is None and self.picture_id:
-            resp = self.get(pic_detail_page_mode.format(pid=self.picture_id)).text
+            resp = self.get(picture_detail_page_mode.format(picture_id=self.picture_id)).text
         selector = etree.HTML(resp)
         # painter_name = selector.xpath('//a[@class="user-name"]/@title')[0]
         painter_id = selector.xpath('//a[@class="user-name"]/@href')[0].split('=')[-1]
@@ -322,7 +322,7 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
         # return self.get_painter_id_info()  # get painter detail info.
 
     def get_painter_info(self):  # main function (DEFAULT: Get information from personal pages)
-        r = self.get(personal_info_mode.format(pid=self.painter_id))
+        r = self.get(personal_info_mode.format(painter_id=self.painter_id))
         info_dict = self._parse_html(r.text)
         info_dict['ID'] = self.painter_id
         return info_dict
@@ -363,12 +363,12 @@ class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific art
         self.already_download_picture = []
         self.picture_num = 0
         self.page_num = 0
-        self.main_page = list_of_works_mode.format(pid=painter_id)
+        self.main_page = list_of_works_mode.format(painter_id=painter_id)
         # self.painter_dirname = self.operate_dir(painter_id)
         # self.painter_dir_exist = False
 
     # def _get_picture_num(self):  # 其实真正对该程序有用的是page_num, 思考picture_num 可以怎么用
-    #     list_of_works = self.get(list_of_works_mode.format(pid=self.painter_id))
+    #     list_of_works = self.get(list_of_works_mode.format(painter_id=self.painter_id))
     #     # print(list_of_works.text)
     #     selector = etree.HTML(list_of_works.text)
     #     try:
@@ -387,7 +387,7 @@ class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific art
             for data in temp_data_list:
                 self.picture_deque.append(data)
         if self.page_num >= 2:
-            base_url = list_of_works_mode.format(pid=self.painter_id)
+            base_url = list_of_works_mode.format(painter_id=self.painter_id)
             for each_page in range(2, self.page_num + 1):
                 try:
                     # works_params = {'type': 'all', 'p': each_page}
@@ -403,7 +403,7 @@ class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific art
         original_img_url = selector.xpath('//img[@data-src]/@data-src')
         temp_data_list = []
         for item in original_img_url:
-            id_str = re_tuple.pid.findall(item)[0]
+            id_str = re_tuple.picture_id.findall(item)[0]
             # p_str = re_tuple.p.findall(item)[0]
             # date_str = re_tuple.date.findall(item)[0]
             if int(id_str) not in self.already_download_picture:
@@ -422,7 +422,7 @@ class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific art
             temp.login()
             temp.download_picture()
 
-            # img_url = pic_detail_page_mode.format(picture_id)
+            # img_url = picture_detail_page_mode.format(picture_id)
             # self.download_picture(img_url=img_url)
 
 
@@ -442,24 +442,24 @@ def get_page_num(cls):
         setattr(cls, 'picture_num', picture_num)
 
 
-class PixivDownloadAlone(PixivDownload, PixivPainterInfo, PixivPictureInfo):  # Give the work ID and get the artist ID
-    def __init__(self, picture_id):
-        super(PixivDownloadAlone, self).__init__(picture_id=picture_id)
-        self.__form_data = bookmark_add_form_data
-        # self.resp = self.get_detail_page_resp()  # 加入数据库之后，这一项将不是必要的, 会在登录之前初始化，GG
-        self.resp = None
-
-    def get_pid_from_work(self):
-        if self.resp is None:
-            self.resp = self.get_detail_page_resp()
-        selector = etree.HTML(self.resp.text)
-        try:
-            pid = selector.xpath('//a[@class="user-name"]/@href')[0].split('=')[-1]  # picture_id -> artist_id
-        except IndexError:
-            raise
-        else:
-            self.painter_id = pid
-            return pid
+# class PixivDownloadAlone(PixivDownload, PixivPainterInfo, PixivPictureInfo):  # Give the work ID and get the artist ID
+#     def __init__(self, picture_id):
+#         super(PixivDownloadAlone, self).__init__(picture_id=picture_id)
+#         self.__form_data = bookmark_add_form_data
+#         # self.resp = self.get_detail_page_resp()  # 加入数据库之后，这一项将不是必要的, 会在登录之前初始化，GG
+#         self.resp = None
+#
+#     def get_pid_from_work(self):
+#         if self.resp is None:
+#             self.resp = self.get_detail_page_resp()
+#         selector = etree.HTML(self.resp.text)
+#         try:
+#             pid = selector.xpath('//a[@class="user-name"]/@href')[0].split('=')[-1]  # picture_id -> artist_id
+#         except IndexError:
+#             raise
+#         else:
+#             self.painter_id = pid
+#             return pid
 
 
 class PixivBookmark(Pixiv):
