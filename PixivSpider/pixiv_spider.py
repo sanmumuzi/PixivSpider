@@ -61,7 +61,6 @@ class Pixiv(requests.Session):  # Just achieve login function
             # 先访问下页面，该方式下保存的cookies，其中信息更多，且包含真正的user_id,体现为PHPSESSID
             # 个人信息页面的Pixiv id 为假
             self.cookies.save(ignore_discard=True)
-            # print(self._get_my_id())
             return True
         return False
 
