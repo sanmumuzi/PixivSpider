@@ -17,6 +17,22 @@ def init_class(cls, account=None, password=None, **kwargs):  # Initialize all cl
 
 
 @timethis
+def check_login_status(account=None, password=None, enforce=False):
+    """
+    Test whether you can log in pixiv.net or not.
+
+    :param account: Website account of pixiv.net.
+    :param password: Website password of pixiv.net.
+    :param enforce: bool type: Force login with account and password
+    :return: bool type: login successful -> True, login failed -> False
+    """
+    instance = Pixiv()
+    if enforce:
+        return instance.login_with_account(account, password)  # Force login with account and password
+    return instance.login(account, password)  # normal login
+
+
+@timethis
 def get_a_picture(picture_id, dirname=None, account=None, password=None, info_dict=None):
     x = init_class(PixivDownload, account, password, picture_id=picture_id)  # 使用下载类
     if info_dict is None:
@@ -155,3 +171,6 @@ if __name__ == '__main__':
     # x = get_bookmarks(painter_id=1980643)
     pass
     # 仰望高端操作，看看能不能把测试写进注释里
+    x = Pixiv()
+    k = x.login_with_account('336@qq.com', '13752016524')
+    print(k)

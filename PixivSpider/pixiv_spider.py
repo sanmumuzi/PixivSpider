@@ -40,7 +40,7 @@ class Pixiv(requests.Session):  # Just achieve login function
 
     def login_with_cookies(self):
         try:
-            self.cookies.load(filename=COOKIE_FILE, ignore_discard=True)
+            self.cookies.load(filename=COOKIE_FILE, ignore_discard=True)  # cookie过期就会登录失败
         except FileNotFoundError:
             return False
         else:
@@ -52,16 +52,19 @@ class Pixiv(requests.Session):  # Just achieve login function
             return True
 
     def login_with_account(self, pixiv_id=None, pixiv_passwd=None):
-        self.__form_data['pixiv_id'] = pixiv_id
-        self.__form_data['password'] = pixiv_passwd
-        self.__form_data['post_key'] = self._get_postkey()
-        result = self.post(url_tuple.post_url, data=self.__form_data)
-        if result.status_code == 200:
-            self.get(main_page)
-            # 先访问下页面，该方式下保存的cookies，其中信息更多，且包含真正的user_id,体现为PHPSESSID
-            # 个人信息页面的Pixiv id 为假
-            self.cookies.save(ignore_discard=True)
-            return True
+        if pixiv_id is not None and pixiv_passwd is not None:  # 保证帐号和密码不能全为空
+            self.__form_data['pixiv_id'] = pixiv_id
+            self.__form_data['password'] = pixiv_passwd
+            self.__form_data['post_key'] = self._get_postkey()
+            result = self.post(url_tuple.post_url, data=self.__form_data)
+            # print(result.text)
+            # print(result.status_code)
+            if result.status_code == 200 and self.already_login():
+                # 只要网络连接没有问题，http status code 应该就是200
+                # 通过访问个人信息页面判定，用户是否真正登录，并且访问页面之后，存的cookies比不访问页面要多字段
+                # 可以拿到真正的用户ID（PHPSESSID）（个人信息页面的Pixiv id 为假）
+                self.cookies.save(ignore_discard=True)  # 保存cookies
+                return True
         return False
 
     def login(self, pixiv_id=None, pixiv_passwd=None):
@@ -71,7 +74,7 @@ class Pixiv(requests.Session):  # Just achieve login function
             return self.login_with_account(pixiv_id, pixiv_passwd)
 
     def already_login(self):
-        resp = self.get(url_tuple.setting_url, allow_redirects=False)
+        resp = self.get(url_tuple.setting_url, allow_redirects=False)  # 禁止重定向
         return resp.status_code == 200
 
 
