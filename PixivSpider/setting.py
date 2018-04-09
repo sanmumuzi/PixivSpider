@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
-import re
 import os
+import re
 from collections import namedtuple
 
 Url_namedtuple = namedtuple('Url', 'login_url post_url setting_url')
@@ -43,6 +43,10 @@ list_of_works_mode = 'https://www.pixiv.net/member_illust.php?id={painter_id}'
 after_str_mode = 'https://i.pximg.net/img-original/img/{date}/{picture_id}_p{p}.{file_type}'
 personal_info_mode = 'https://www.pixiv.net/member.php?id={painter_id}'
 
+# page: p (eg: 12345_p1.jpg)
+picture_part_detail_page_mode = \
+    'https://www.pixiv.net/member_illust.php?mode=manga_big&illust_id={picture_id}&page={page}'
+
 picture_num_of_each_page = 20
 
 base_folder = os.path.join(os.path.abspath(os.curdir), 'info_folder')
@@ -60,6 +64,7 @@ COOKIE_FILE = os.path.join(base_folder, 'cookies')  # 'cookies\cookies'
 
 # token config
 token_path = os.path.join(base_folder, 'token')
+
 
 # base dir name
 # base_dir_name = os.path.abspath(os.path.dirname(__file__))
@@ -87,7 +92,5 @@ bookmark_add_form_data = {
     'restrict': '0',
 }
 
-
 if __name__ == '__main__':
     pass
-

@@ -79,7 +79,7 @@ class Pixiv(requests.Session):  # Just achieve login function
 
 
 class PixivDownload(Pixiv):  # pure download a item
-    def __init__(self, picture_id=None):
+    def __init__(self, picture_id):
         super(PixivDownload, self).__init__()
         self.picture_id = picture_id
         self.resp = None
@@ -113,30 +113,22 @@ class PixivDownload(Pixiv):  # pure download a item
             print('访问源页面出错，错误代码为:{}...{}'.format(img_data.status_code, self.picture_id))
         return None
 
-    def download_picture(self, dirname=save_folder):
+    def download_picture(self, p=None, dirname=save_folder):
+        save_path = None
         if self.resp is None:
             self.resp = self.get_detail_page_resp()
         selector = etree.HTML(self.resp.text)
-        try:
-            original_image = selector.xpath('//img[@class="original-image"]/@data-src')[0]
+        try:  # 无论用户指不指定p，我们都应该检测是否为多P，多P作品的p0与单作的p0爬取方式不同
+            page_count = selector.xpath('//div[@class="page-count"]/span/text()')[0]
+            print(page_count)
         except IndexError:
-            raise
-        else:
-            resp = self._get_img_data(picture_id=self.picture_id, img_url=original_image)
-            if resp is not None:
-                self.__picture_base_info = list(self.split_info(original_image))
-                # add painter_id to info list, just for compatibility and interface.
-                self.__picture_base_info.insert(1, None)
-                picture_id, p, date, file_type = self.split_info(original_image)
-
-                save_path = self._save_img_file(filename=self._get_complete_filename(picture_id, p, file_type),
-                                                img_data=resp,
-                                                dirname=dirname)
-                print('下载成功...{}'.format(picture_id))
-                return save_path
-            else:
-                print('下载失败...{}'.format(self.picture_id))
-                return None
+            print('这不是一个多P图片...{}'.format(self.picture_id))
+            save_path_list = self._get_one_picture(picture_id=self.picture_id, selector=selector, dirname=dirname)
+        else:  # 有时候真的不喜欢OOP, 更喜欢这样实际传参.
+            print('这是一个多P图片...')
+            save_path_list = self._get_picture_part(self.picture_id, p_max=int(page_count), p_num=p, dirname=dirname)
+        finally:
+            return save_path_list
 
     def download_picture_directly(self, dirname=save_folder, **kwargs):
         """
@@ -163,7 +155,72 @@ class PixivDownload(Pixiv):  # pure download a item
                 dirname=dirname
             )
             print('下载成功...{}'.format(picture_id))
-            return save_path
+            return [save_path]
+
+    def _get_picture_part(self, picture_id, p_num=None, p_max=None, dirname=None):
+        """
+        get the binary data of picture which not only has one page.
+
+        :param picture_id: the unique id of picture.
+        :param p_num: the specific page of the picture.
+        :param p_max: the number of page of the picture.
+                      Note: p_num or p_max must is not None.
+        :param dirname: the directory of saving the picture.
+        :return: [the path name of picture, ...]
+        """
+        save_path_list = []
+        operate_list = []
+        if p_num is not None:
+            operate_list.append(p_num)
+        elif p_max is not None:
+            operate_list.extend(range(p_max))
+        print(operate_list)
+
+        for p in operate_list:
+            picture_binary_data, info_tuple = self._get_one_picture_part(picture_id, p)
+            _, p, date, file_type = info_tuple
+            if picture_binary_data is not None:
+                save_path = self._save_img_file(filename=self._get_complete_filename(picture_id, p, file_type),
+                                                img_data=picture_binary_data,
+                                                dirname=dirname)
+                save_path_list.append(save_path)
+        return save_path_list
+
+    def _get_one_picture(self, picture_id, selector, dirname):
+        try:
+            original_image = selector.xpath('//img[@class="original-image"]/@data-src')[0]
+        except IndexError:
+            raise
+        else:
+            resp = self._get_img_data(picture_id=self.picture_id, img_url=original_image)
+            if resp is not None:
+                self.__picture_base_info = list(self.split_info(original_image))
+                # add painter_id to info list, just for compatibility and interface.
+                self.__picture_base_info.insert(1, None)
+                picture_id, p, date, file_type = self.split_info(original_image)
+
+                save_path = self._save_img_file(filename=self._get_complete_filename(picture_id, p, file_type),
+                                                img_data=resp,
+                                                dirname=dirname)
+                print('下载成功...{}'.format(picture_id))
+                return [save_path]
+            else:
+                print('下载失败...{}'.format(self.picture_id))
+                return None
+
+    def _get_one_picture_part(self, picture_id, p_num):
+        picture_part_url = picture_part_detail_page_mode.format(picture_id=picture_id, page=p_num)
+        resp_text = self.get(picture_part_url).text
+        real_url = self._get_real_url_from_part_page(resp_text)
+        info_tuple = self.split_info(real_url)
+        picture_binary_data = self._get_img_data(img_url=real_url)
+        return picture_binary_data, info_tuple
+
+    @staticmethod
+    def _get_real_url_from_part_page(resp_text):
+        selector = etree.HTML(resp_text)
+        real_url = selector.xpath('//body/img/@src')
+        return real_url[0]
 
     @staticmethod
     def split_info(url):
@@ -187,7 +244,7 @@ class PixivDownload(Pixiv):  # pure download a item
     def _save_img_file(filename, img_data, dirname):
         file_path = os.path.join(dirname, filename)  # 这个地方可能因为用户乱定义，造成错误
         if not os.path.exists(file_path):
-            with open(file=file_path, mode='wb') as f:  # 可能报错
+            with open(file=file_path, mode='wb') as f:  # 可能报错,如果目录不存在
                 f.write(img_data)
                 print('{}保存成功...'.format(filename))
                 return file_path  # 将保存路径返回，用做gui显示图片
@@ -207,7 +264,7 @@ class PixivDownload(Pixiv):  # pure download a item
     #         except Exception:
     #             raise
     #     return specific_path
-    #
+
     def get_resp_text(self):  # return picture page html text
         try:
             return self.resp.text
@@ -535,6 +592,8 @@ class PixivBase(Pixiv):
 
 
 if __name__ == "__main__":
-    pass
+    x = PixivDownload(picture_id=55739666)
+    x.login()
+    x.download_picture()
 
 # sometimes naive.

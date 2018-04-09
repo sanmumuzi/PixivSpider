@@ -33,25 +33,25 @@ def check_login_status(account=None, password=None, enforce=False):
 
 
 @timethis
-def get_a_picture(picture_id, dirname=None, account=None, password=None, info_dict=None):
+def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None, info_dict=None):
     x = init_class(PixivDownload, account, password, picture_id=picture_id)  # 使用下载类
     if info_dict is None:
         if dirname is not None:
-            save_path = x.download_picture(dirname)  # 用户自己特定路径
+            save_path_list = x.download_picture(p, dirname)  # 用户自己特定路径
         else:
-            save_path = x.download_picture()  # 下载图片，获取图片保存路径
+            save_path_list = x.download_picture(p)  # 下载图片，获取图片保存路径
     else:
         if dirname is not None:
-            save_path = x.download_picture_directly(dirname, **info_dict)  # 用户自己特定路径
+            save_path_list = x.download_picture_directly(dirname, **info_dict)  # 用户自己特定路径
         else:
-            save_path = x.download_picture_directly(**info_dict)  # 下载图片，获取图片保存路径
-    if save_path is not None:
+            save_path_list = x.download_picture_directly(**info_dict)  # 下载图片，获取图片保存路径
+    if save_path_list != []:
         print('Download successful: {}'.format(picture_id))
-        print('Picture save path: {}'.format(save_path))
+        print('Picture save path: {}'.format(save_path_list))
     else:
         print('Download failed: {}...'.format(picture_id))
     resp_text = x.get_resp_text()
-    return [x.picture_base_info, save_path, resp_text]
+    return [x.picture_base_info, save_path_list, resp_text]
     # picture base information:
     # five elements list: picture_id, painter_id, p, date, picture file type
     # note: painter_id is always None at this version.
@@ -164,13 +164,10 @@ def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None)
 if __name__ == '__main__':
     # get_a_picture(58501385)
     # print(get_picture_info(58501385))
-    # print(add_bookmark(58501385))
+    # print(add_bookmark(60732070))
     # print(get_painter_info(picture_id=58501385))
     # get_all_picture_of_painter(picture_id=58501385)
     # print(get_a_picture.__module__, get_a_picture.__class__, get_a_picture.__name__)
     # x = get_bookmarks(painter_id=1980643)
     pass
     # 仰望高端操作，看看能不能把测试写进注释里
-    x = Pixiv()
-    k = x.login_with_account('336@qq.com', '13752016524')
-    print(k)
