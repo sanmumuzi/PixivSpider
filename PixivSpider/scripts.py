@@ -102,14 +102,16 @@ def get_rank_script(mode, start_date, **kwargs):
         if query_date <= end_date:
             year, month, day = convert_date_format(query_date)
             date_str = year + month + day
-            url = daily_rank_info_mode.format(date=date_str, p=1)
+            # Note: It can be optimized!
+            for i in range(1, 11):
+                url = daily_rank_info_mode.format(date=date_str, p=i)
 
-            r = requests.get(url)
-            if r.status_code == 200:
-                with open('{}_rank_{}.json'.format(mode, date_str), 'wt', encoding='utf-8') as f:
-                    f.write(r.text)
-            else:
-                logging.error('{}, {}: {}'.format(url, r.status_code, r.text))
+                r = requests.get(url)
+                if r.status_code == 200:
+                    with open('{}_rank_{}_part_{}.json'.format(mode, date_str, i), 'wt', encoding='utf-8') as f:
+                        f.write(r.text)
+                else:
+                    logging.error('{}, {}: {}'.format(url, r.status_code, r.text))
             query_date += timedelta(days=1)
         else:
             break
