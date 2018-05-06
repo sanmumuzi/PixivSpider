@@ -109,7 +109,7 @@ def get_rank_script(mode, start_date, **kwargs):
 
                 r = requests.get(url)
                 if r.status_code == 200:
-                    with open('{}_rank_{}_part_{}.json'.format(mode, date_str, i), 'wt', encoding='utf-8') as f:
+                    with open('{}_rank_{}_part_{}.json'.format(mode, date_str, index), 'wt', encoding='utf-8') as f:
                         f.write(r.text)
                     index += 1
                 else:
