@@ -43,6 +43,13 @@ list_of_works_mode = 'https://www.pixiv.net/member_illust.php?id={painter_id}'
 after_str_mode = 'https://i.pximg.net/img-original/img/{date}/{picture_id}_p{p}.{file_type}'
 personal_info_mode = 'https://www.pixiv.net/member.php?id={painter_id}'
 
+# rank info mode
+mode_set = {'daily', 'male', 'female'}
+base_rank_info_mode = 'https://www.pixiv.net/ranking.php?mode={mode}&date={date}&p={p}&format=json'
+daily_rank_info_mode = 'https://www.pixiv.net/ranking.php?mode=daily&date={date}&p={p}&format=json'
+male_rank_info_mode = 'https://www.pixiv.net/ranking.php?mode=male&date={date}&p={p}&format=json'
+female_rank_info_mode = 'https://www.pixiv.net/ranking.php?mode=female&date={date}&p={p}&format=json'
+
 # page: p (eg: 12345_p1.jpg)
 picture_part_detail_page_mode = \
     'https://www.pixiv.net/member_illust.php?mode=manga_big&illust_id={picture_id}&page={page}'

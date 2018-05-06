@@ -3,6 +3,10 @@ import sys
 from collections import deque
 from http import cookiejar
 from math import ceil
+from queue import Queue
+from PixivSpider.base import *
+import json
+from pprint import pprint
 
 import requests
 from lxml import etree
@@ -426,19 +430,6 @@ class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific art
         # self.painter_dirname = self.operate_dir(painter_id)
         # self.painter_dir_exist = False
 
-    # def _get_picture_num(self):  # 其实真正对该程序有用的是page_num, 思考picture_num 可以怎么用
-    #     list_of_works = self.get(list_of_works_mode.format(painter_id=self.painter_id))
-    #     # print(list_of_works.text)
-    #     selector = etree.HTML(list_of_works.text)
-    #     try:
-    #         print(self.painter_id)
-    #         picture_num = selector.xpath('//span[@class="count-badge"]/text()')[0]
-    #     except IndexError:
-    #         print('Get picture_num failure.')
-    #         raise
-    #     else:
-    #         return selector, int(re_tuple.num.findall(picture_num)[0])
-
     def _get_work_info(self):  # Add data tuple to the work queue.
         if self.page_num >= 1:
             resp_text = self.get(self.main_page).text
@@ -483,6 +474,47 @@ class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific art
 
             # img_url = picture_detail_page_mode.format(picture_id)
             # self.download_picture(img_url=img_url)
+
+
+class PixivRank(Pixiv):
+    def __init__(self):
+        super(PixivRank, self).__init__()
+        self.queue = Queue()
+
+    # def get_rank(self, page_num):
+    #     for p in page_num:
+    #         self.deque.append(rank_info_mode.format(p=int(p)))
+    #
+    # def get_detail(self, item):
+    #     print(self)
+    #     print(item)
+    #
+    # def result(self):
+    #     thread = StoppableWorker(self.get_detail, self.deque, self.queue)
+    #     thread.start()
+    #     thread.join()
+    #
+    # def test(self):
+    #     for x in range(10):
+    #         temp = self.queue.get()
+    #         print('开始处理分析文本', temp)
+
+    def get_rank(self, *page):
+        url_list = [daily_rank_info_mode.format(p=p) for p in page]
+        self._thread_run(url_list)
+        len_page = len(page)
+        for _ in range(len_page):
+            response = self.queue.get()
+            self.parse_json(response.text)
+
+    def parse_json(self, text):
+        data_json = json.loads(text)
+        pprint(data_json)
+
+    def _thread_run(self, url_list):
+        thread = MyWorker(self.get, url_list, self.queue)
+        thread.setDaemon(True)
+        thread.start()
 
 
 def get_page_num(cls):
@@ -592,8 +624,9 @@ class PixivBase(Pixiv):
 
 
 if __name__ == "__main__":
-    x = PixivDownload(picture_id=55739666)
-    x.login()
-    x.download_picture()
-
+    # x = PixivDownload(picture_id=55739666)
+    # x.login()
+    # x.download_picture()
+    x = PixivRank()
+    x.get_rank(1, 2)
 # sometimes naive.
