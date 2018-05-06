@@ -98,20 +98,20 @@ def get_rank_script(mode, start_date, **kwargs):
     """
     query_date = start_date
     end_date = kwargs['end_date']
-    i = 1
     while True:
         if query_date <= end_date:
             year, month, day = convert_date_format(query_date)
             date_str = year + month + day
+            index = 1
             # Note: It can be optimized!
             while True:
-                url = daily_rank_info_mode.format(date=date_str, p=i)
+                url = daily_rank_info_mode.format(date=date_str, p=index)
 
                 r = requests.get(url)
                 if r.status_code == 200:
                     with open('{}_rank_{}_part_{}.json'.format(mode, date_str, i), 'wt', encoding='utf-8') as f:
                         f.write(r.text)
-                    i += 1
+                    index += 1
                 else:
                     logging.error('{}, {}: {}'.format(url, r.status_code, r.text))
                     break
