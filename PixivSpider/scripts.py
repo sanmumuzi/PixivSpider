@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import logging
 from functools import wraps
 
-from setting import (mode_set, daily_rank_info_mode, male_rank_info_mode, female_rank_info_mode)
+from PixivSpider.setting import (mode_set, daily_rank_info_mode, male_rank_info_mode, female_rank_info_mode)
 
 
 logging.basicConfig(level=logging.DEBUG)

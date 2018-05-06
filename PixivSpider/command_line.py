@@ -1,4 +1,10 @@
 # -*- coding:utf-8 -*-
+
+"""
+Command line tool is most likely not available because
+I haven't updated these functions.
+"""
+
 import argparse
 import json
 import os
@@ -6,6 +12,7 @@ from pprint import pprint
 
 from PixivSpider.PixivSpiderApi import *
 from PixivSpider.setting import save_folder
+from PixivSpider.scripts import get_rank_script
 
 
 # import sys
@@ -17,6 +24,7 @@ def process_args():  # 使用argparse库分析命令行参数
         description='Download pictures for Pixiv Painter.'
     )
     # parser.add_argument('-g', '--gui', action='store_true', help='Open the GUI.')
+    parser.add_argument('-s', '--scripts', dest='scripts', action='store', help='startup scripts that get rank.')
     parser.add_argument('-u', '-account', dest='account', action='store', help='Your Pixiv_username.')
     parser.add_argument('-p', '-password', dest='password', action='store', help='Your Pixiv_password.')
     # parser.add_argument('-pid', '--painter_id', help='Painter ID', required=True)
@@ -49,9 +57,22 @@ def process_args():  # 使用argparse库分析命令行参数
 
 def logic_call():
     args = process_args()
+    print("Command line tool is most likely not available because I haven't updated these functions.")
     base_args_check(args)  # 参数检查
     if args.outpath is None:
         args.outpath = save_folder  # default storage path.
+
+    # startup scripts that get rank data.
+    if args.scripts:
+        # Note: There is no check here!
+        scripts_arg = args.scripts.split()
+        mode = scripts_arg[0]
+        start_date = tuple([int(scripts_arg[i]) for i in range(1, 4)])
+        if len(scripts_arg) == 7:
+            end_date = tuple([int(scripts_arg[i]) for i in range(4, 7)])
+            get_rank_script(mode, start_date=start_date, end_date=end_date)
+        else:
+            get_rank_script(mode, start_date=start_date)
 
     if args.picture_id is not None:  # picture_id 和 painter_id 只有一个有作用，picture_id优先
         for picture_id in args.picture_id:  # allow use multiple parameters.
