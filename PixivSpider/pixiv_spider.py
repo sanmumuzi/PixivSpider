@@ -4,17 +4,21 @@ from collections import deque
 from http import cookiejar
 from math import ceil
 from queue import Queue
-from PixivSpider.base import *
 import json
-from pprint import pprint
+import logging
+from datetime import datetime, timedelta
 
 import requests
+from requests.exceptions import ConnectionError
 from lxml import etree
 
 from PixivSpider.setting import *
+from PixivSpider.base import *
 
 __all__ = ['Pixiv', 'PixivDownload', 'PixivPainterInfo', 'PixivPictureInfo', 'PixivAllPictureOfPainter',
            'PixivOperatePicture', 'PixivBookmark']
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class Pixiv(requests.Session):  # Just achieve login function
@@ -118,7 +122,7 @@ class PixivDownload(Pixiv):  # pure download a item
         return None
 
     def download_picture(self, p=None, dirname=save_folder):
-        save_path = None
+        save_path_list = None
         if self.resp is None:
             self.resp = self.get_detail_page_resp()
         selector = etree.HTML(self.resp.text)
@@ -476,45 +480,52 @@ class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific art
             # self.download_picture(img_url=img_url)
 
 
-class PixivRank(Pixiv):
+class PixivRank(object):
+    """
+    Get the rank of pixiv.net.
+    """
     def __init__(self):
         super(PixivRank, self).__init__()
-        self.queue = Queue()
 
-    # def get_rank(self, page_num):
-    #     for p in page_num:
-    #         self.deque.append(rank_info_mode.format(p=int(p)))
-    #
-    # def get_detail(self, item):
-    #     print(self)
-    #     print(item)
-    #
-    # def result(self):
-    #     thread = StoppableWorker(self.get_detail, self.deque, self.queue)
-    #     thread.start()
-    #     thread.join()
-    #
-    # def test(self):
-    #     for x in range(10):
-    #         temp = self.queue.get()
-    #         print('开始处理分析文本', temp)
+    def get_daily_rank(self, date, p=1):
+        """
+        Get daily ranking data of Pixiv.net.
+        :param date: An object that represent time, such as str or int or datetime.datetime object.
+        :param p: p represents the part of daily work.
+        :return: json data that contain information.
+        """
+        json_data = None
+        url = self.get_daily_rank_url(date, p)
+        try:
+            r = requests.get(url)
+        except ConnectionError as e:
+            logging.error(e)
+            # raise
+        else:
+            json_data = json.loads(r.text)
+        return json_data
 
-    def get_rank(self, *page):
-        url_list = [daily_rank_info_mode.format(p=p) for p in page]
-        self._thread_run(url_list)
-        len_page = len(page)
-        for _ in range(len_page):
-            response = self.queue.get()
-            self.parse_json(response.text)
+    def get_daily_rank_url(self, date, p):
+        if isinstance(date, datetime):
+            date = self.convert_date_format(date)
+        elif isinstance(date, int) or isinstance(date, str):
+            pass
+        else:
+            logging.error('Func parameter error.')
+            return
+        url = daily_rank_info_mode.format(date=date, p=p)
+        logging.debug('Daily_rank_url: {}'.format(url))
+        return url
 
-    def parse_json(self, text):
-        data_json = json.loads(text)
-        pprint(data_json)
-
-    def _thread_run(self, url_list):
-        thread = MyWorker(self.get, url_list, self.queue)
-        thread.setDaemon(True)
-        thread.start()
+    @staticmethod
+    def convert_date_format(date):
+        """
+        Convert a datetime.datetime object to a string.
+        eg: 2018-05-04 21:11:46.316617 -> 20180504
+        :param date: a datetime.datetime object
+        :return: str
+        """
+        return str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)
 
 
 def get_page_num(cls):
@@ -628,5 +639,5 @@ if __name__ == "__main__":
     # x.login()
     # x.download_picture()
     x = PixivRank()
-    x.get_rank(1, 2)
+    x.get_daily_rank('20180101')
 # sometimes naive.
