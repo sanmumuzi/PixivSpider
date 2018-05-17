@@ -1,19 +1,17 @@
 # -*- coding:utf-8 -*-
-import sys
-from collections import deque
-from http import cookiejar
-from math import ceil
-from queue import Queue
 import json
 import logging
-from datetime import datetime, timedelta
+import sys
+from collections import deque
+from datetime import datetime
+from http import cookiejar
+from math import ceil
 
 import requests
-from requests.exceptions import ConnectionError
 from lxml import etree
+from requests.exceptions import ConnectionError
 
 from PixivSpider.setting import *
-from PixivSpider.base import *
 
 __all__ = ['Pixiv', 'PixivDownload', 'PixivPainterInfo', 'PixivPictureInfo', 'PixivAllPictureOfPainter',
            'PixivOperatePicture', 'PixivBookmark']
@@ -91,7 +89,7 @@ class PixivDownload(Pixiv):  # pure download a item
         super(PixivDownload, self).__init__()
         self.picture_id = picture_id
         self.resp = None
-        self.__picture_base_info = tuple()
+        self.__picture_base_info = {}  # Should be picture_id, user, p, date, file_type
 
     def get_detail_page_resp(self):
         resp = self.get(picture_detail_page_mode.format(picture_id=self.picture_id))
@@ -99,7 +97,7 @@ class PixivDownload(Pixiv):  # pure download a item
         print(resp.status_code)
         return resp
 
-    def _get_img_data(self, picture_id=None, date=None, p=None, file_type=None, img_url=None):
+    def get_img_data(self, picture_id=None, date=None, p=None, file_type=None, img_url=None):
         headers = self.headers
         headers['Host'] = 'www.pixiv.net'  # modify the most important headers info
         headers['Referer'] = picture_detail_page_mode.format(picture_id=picture_id)
@@ -109,7 +107,7 @@ class PixivDownload(Pixiv):  # pure download a item
                 # instead of using four 'not None' judgments.
                 img_url = self._get_real_url(picture_id, date, p, file_type)
             else:
-                print('{}参数输入错误,无法构造url...'.format(self._get_img_data.__name__))
+                print('{}参数输入错误,无法构造url...'.format(self.get_img_data.__name__))
                 sys.exit(1)
         img_data = self.get(img_url, headers=headers)  # not get binary data of picture, get resp object
         if img_data.status_code == 200:
@@ -135,8 +133,7 @@ class PixivDownload(Pixiv):  # pure download a item
         else:  # 有时候真的不喜欢OOP, 更喜欢这样实际传参.
             print('这是一个多P图片...')
             save_path_list = self._get_picture_part(self.picture_id, p_max=int(page_count), p_num=p, dirname=dirname)
-        finally:
-            return save_path_list
+        return save_path_list
 
     def download_picture_directly(self, dirname=save_folder, **kwargs):
         """
@@ -147,12 +144,12 @@ class PixivDownload(Pixiv):  # pure download a item
         :return: The file path of the downloaded picture.
         """
         try:
-            picture_id, p, date, file_type = kwargs['picture_Id'], kwargs['p'], kwargs['date'], kwargs['file_type']
+            picture_id, p, date, file_type = kwargs['picture_id'], kwargs['p'], kwargs['date'], kwargs['file_type']
         except KeyError:
             print('提交的参数有错误...{}'.format(kwargs))
             raise
         try:
-            resp = self._get_img_data(picture_id=picture_id, p=p, date=date, file_type=file_type)
+            resp = self.get_img_data(picture_id=picture_id, p=p, date=date, file_type=file_type)
         except Exception as e:
             print('下载失败...{}'.format(picture_id))
             return None
@@ -185,8 +182,8 @@ class PixivDownload(Pixiv):  # pure download a item
         print(operate_list)
 
         for p in operate_list:
-            picture_binary_data, info_tuple = self._get_one_picture_part(picture_id, p)
-            _, p, date, file_type = info_tuple
+            picture_binary_data, illust_base_info_dict = self._get_one_picture_part(picture_id, p)
+            p, date, file_type = illust_base_info_dict['p'], illust_base_info_dict['date'], illust_base_info_dict['type']
             if picture_binary_data is not None:
                 save_path = self._save_img_file(filename=self._get_complete_filename(picture_id, p, file_type),
                                                 img_data=picture_binary_data,
@@ -196,33 +193,35 @@ class PixivDownload(Pixiv):  # pure download a item
 
     def _get_one_picture(self, picture_id, selector, dirname):
         try:
-            original_image = selector.xpath('//img[@class="original-image"]/@data-src')[0]
+            original_image_url = selector.xpath('//img[@class="original-image"]/@data-src')[0]
         except IndexError:
             raise
         else:
-            resp = self._get_img_data(picture_id=self.picture_id, img_url=original_image)
+            resp = self.get_img_data(picture_id=self.picture_id, img_url=original_image_url)
             if resp is not None:
-                self.__picture_base_info = list(self.split_info(original_image))
+                self.__picture_base_info = self.split_info(original_image_url)
+                # Abandoned!
                 # add painter_id to info list, just for compatibility and interface.
-                self.__picture_base_info.insert(1, None)
-                picture_id, p, date, file_type = self.split_info(original_image)
-
+                # self.__picture_base_info.insert(1, None)
+                illust_base_info_dict = self.split_info(original_image_url)
+                picture_id, p, date, file_type = illust_base_info_dict['id'], illust_base_info_dict['p'], \
+                                                 illust_base_info_dict['date'], illust_base_info_dict['type']
                 save_path = self._save_img_file(filename=self._get_complete_filename(picture_id, p, file_type),
                                                 img_data=resp,
                                                 dirname=dirname)
-                print('下载成功...{}'.format(picture_id))
+                logging.debug('下载成功...{}'.format(picture_id))
                 return [save_path]
             else:
-                print('下载失败...{}'.format(self.picture_id))
+                logging.error('下载失败...{}'.format(self.picture_id))
                 return None
 
     def _get_one_picture_part(self, picture_id, p_num):
         picture_part_url = picture_part_detail_page_mode.format(picture_id=picture_id, page=p_num)
         resp_text = self.get(picture_part_url).text
         real_url = self._get_real_url_from_part_page(resp_text)
-        info_tuple = self.split_info(real_url)
-        picture_binary_data = self._get_img_data(img_url=real_url)
-        return picture_binary_data, info_tuple
+        illust_base_info_dcit = self.split_info(real_url)
+        picture_binary_data = self.get_img_data(img_url=real_url)
+        return picture_binary_data, illust_base_info_dcit
 
     @staticmethod
     def _get_real_url_from_part_page(resp_text):
@@ -236,8 +235,9 @@ class PixivDownload(Pixiv):  # pure download a item
         p = re_tuple.p_from_source.findall(url)[0]
         date = re_tuple.date.findall(url)[0]
         file_type = url.split('.')[-1]
-        print(picture_id, p, date, file_type)
-        return picture_id, p, date, file_type  # return four elements tuple
+        logging.debug((picture_id, p, date, file_type))
+        # return picture_id, p, date, file_type  # return four elements tuple
+        return {'id': picture_id, 'p': p, 'date': date, 'type': file_type, 'user_id': None}
 
     @staticmethod
     def _get_real_url(picture_id, date, p, file_type):
@@ -484,6 +484,7 @@ class PixivRank(object):
     """
     Get the rank of pixiv.net.
     """
+
     def __init__(self):
         super(PixivRank, self).__init__()
 
@@ -635,9 +636,13 @@ class PixivBase(Pixiv):
 
 
 if __name__ == "__main__":
-    # x = PixivDownload(picture_id=55739666)
+    x = PixivDownload(picture_id=68698234)
+    x.login('332627946@qq.com', '13752016524')
+    xxx = x.already_login()
+    print(xxx)
+    x.download_picture()
     # x.login()
     # x.download_picture()
-    x = PixivRank()
-    x.get_daily_rank('20180101')
+    # x = PixivRank()
+    # x.get_daily_rank('20180101')
 # sometimes naive.

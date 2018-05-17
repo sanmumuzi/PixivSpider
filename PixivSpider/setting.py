@@ -58,7 +58,7 @@ picture_num_of_each_page = 20
 
 base_folder = os.path.join(os.path.abspath(os.curdir), 'info_folder')
 
-if not os.path.exists(base_folder):
+if not os.path.exists(base_folder):  # 这里明显不好，如果只执行个小脚本，也需要创建这些文件夹，但其实并不需要
     os.makedirs(base_folder)
 # 这个地方有问题，如果用户不修改这个值，那么所有图片都会下载到包目录里去。GG
 save_folder = os.path.join(base_folder, 'artist_work')

@@ -45,7 +45,7 @@ def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None,
             save_path_list = x.download_picture_directly(dirname, **info_dict)  # 用户自己特定路径
         else:
             save_path_list = x.download_picture_directly(**info_dict)  # 下载图片，获取图片保存路径
-    if save_path_list != []:
+    if save_path_list:
         print('Download successful: {}'.format(picture_id))
         print('Picture save path: {}'.format(save_path_list))
     else:
@@ -55,6 +55,12 @@ def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None,
     # picture base information:
     # five elements list: picture_id, painter_id, p, date, picture file type
     # note: painter_id is always None at this version.
+
+
+# @timethis
+# def get_a_illust(illust_id, p=None, account=None, password=None, info_dict=None):
+#     x = init_class(PixivDownload, account, password, picture_id=illust_id)
+#     if info_dict is None:
 
 
 @timethis
@@ -169,5 +175,7 @@ if __name__ == '__main__':
     # get_all_picture_of_painter(picture_id=58501385)
     # print(get_a_picture.__module__, get_a_picture.__class__, get_a_picture.__name__)
     # x = get_bookmarks(painter_id=1980643)
-    pass
+    x = get_a_picture(picture_id=68698234)
+    from pprint import pprint
+    pprint(x)
     # 仰望高端操作，看看能不能把测试写进注释里
