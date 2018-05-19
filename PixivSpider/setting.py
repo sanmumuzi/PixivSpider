@@ -70,27 +70,27 @@ if not os.path.exists(save_folder):
 COOKIE_FILE = os.path.join(base_folder, 'cookies')  # 'cookies\cookies'
 
 # token config
-token_path = os.path.join(base_folder, 'token')
+TOKEN_FILE = os.path.join(base_folder, 'token')
 
 
 # base dir name
 # base_dir_name = os.path.abspath(os.path.dirname(__file__))
 
 
-def get_tt():
-    tt = ''
-    try:
-        with open(token_path, 'rt') as f:
-            tt = f.read()
-    except FileNotFoundError as e:
-        pass
-    finally:
-        return tt
+# def get_tt():
+#     tt = ''
+#     try:
+#         with open(TOKEN_FILE, 'rt') as f:
+#             tt = f.read()
+#     except FileNotFoundError as e:
+#         pass
+#     finally:
+#         return tt
 
 
 bookmark_add_form_data = {
     'mode': 'add',
-    'tt': get_tt(),
+    'tt': '',
     'id': '',
     'type': 'illust',
     'from_sid': '',

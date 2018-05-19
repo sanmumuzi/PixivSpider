@@ -15,3 +15,7 @@ class MyWorker(Thread):
         for item in self.in_list:
             result = self.func(item)
             self.out_queue.put(result)
+
+
+class ProgrammingError(Exception):
+    pass
