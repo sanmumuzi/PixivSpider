@@ -70,7 +70,7 @@ class Pixiv(requests.Session):  # Just achieve login function
             # 加载cookies文件,转为字典,这里的问题也一样，cookies可能会改变
             try:
                 account_id = cookies_dict['PHPSESSID'].split('_')[0]  # 提取account id
-            except IndexError:
+            except KeyError:
                 pass
         return account_id
 

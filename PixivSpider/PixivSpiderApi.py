@@ -22,7 +22,7 @@ def init_class(cls, account=None, password=None, **kwargs):  # Initialize all cl
 
 
 @timethis
-def check_login_status(account=None, password=None, enforce=False):
+def check_login_status(account=None, password=None, enforce=False, return_auth_info=False):
     """
     Test whether you can log in pixiv.net or not.
 
@@ -32,13 +32,21 @@ def check_login_status(account=None, password=None, enforce=False):
     :return: bool type: login successful -> True, login failed -> False
     """
     instance = Pixiv()
+    return_dict = {}
     if enforce:
-        return instance.login_with_account(account, password)  # Force login with account and password
-    return instance.login(account, password)  # normal login
+        return_dict['login_status'] = instance.login_with_account(account,
+                                                                  password)  # Force login with account and password
+    else:
+        return_dict['login_status'] = instance.login(account, password)  # normal login
+    if return_auth_info:
+        return_dict['auth_info'] = {'ps_user_id': instance.get_my_id(),
+                                    'cookies': json.dumps(instance.get_cookies_dict()), 'token': instance.get_token()}
+    return return_dict
 
 
 @timethis
-def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None, info_dict=None, return_auth_info=False):
+def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None, info_dict=None,
+                  return_auth_info=False):
     x = init_class(PixivDownload, account, password, picture_id=picture_id)  # 使用下载类
     if info_dict is None:
         if dirname is not None:
@@ -128,6 +136,7 @@ def get_painter_id(picture_id=None, resp=None, account=None, password=None, retu
         if return_auth_info:
             return_dict['auth_info'] = {'cookies': json.dumps(x.get_cookies_dict()), 'token': x.get_token()}
         return return_dict
+
 
 @timethis
 def get_painter_info(painter_id=None, picture_id=None, account=None, password=None, return_auth_info=False):
