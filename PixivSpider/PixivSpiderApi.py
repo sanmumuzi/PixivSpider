@@ -22,7 +22,8 @@ def init_class(cls, account=None, password=None, **kwargs):  # Initialize all cl
 
 
 @timethis
-def check_login_status(account=None, password=None, enforce=False, return_auth_info=False):
+def check_login_status(account=None, password=None, enforce=False, cookies_dict=None, token_str=None,
+                       return_auth_info=False):
     """
     Test whether you can log in pixiv.net or not.
 
@@ -31,7 +32,7 @@ def check_login_status(account=None, password=None, enforce=False, return_auth_i
     :param enforce: bool type: Force login with account and password
     :return: bool type: login successful -> True, login failed -> False
     """
-    instance = Pixiv()
+    instance = Pixiv(cookies_dict=cookies_dict, token_str=token_str)
     return_dict = {}
     if enforce:
         return_dict['login_status'] = instance.login_with_account(account,
@@ -45,9 +46,11 @@ def check_login_status(account=None, password=None, enforce=False, return_auth_i
 
 
 @timethis
-def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None, info_dict=None,
+def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None, cookies_dict=None, token_str=None,
+                  info_dict=None,
                   return_auth_info=False):
-    x = init_class(PixivDownload, account, password, picture_id=picture_id)  # 使用下载类
+    x = init_class(PixivDownload, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
+                   token_str=token_str)  # 使用下载类
     if info_dict is None:
         if dirname is not None:
             save_path_list = x.download_picture(p, dirname)  # 用户自己特定路径
@@ -81,8 +84,10 @@ def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None,
 
 
 @timethis
-def get_picture_info(picture_id=None, resp=None, account=None, password=None, return_auth_info=False):
-    x = init_class(PixivPictureInfo, account, password, picture_id=picture_id)  # 使用图片信息类
+def get_picture_info(picture_id=None, resp=None, account=None, password=None, cookies_dict=None, token_str=None,
+                     return_auth_info=False):
+    x = init_class(PixivPictureInfo, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
+                   token_str=token_str)  # 使用图片信息类
     return_dict = {'illust_info': x.get_picture_info(resp=resp)}
     # 貌似是优先使用resp,如果没有再使用picture_id
     if return_auth_info:
@@ -94,14 +99,16 @@ def get_picture_info(picture_id=None, resp=None, account=None, password=None, re
 
 
 @timethis
-def add_bookmark(picture_id, comment='', tag='', account=None, password=None, return_auth_info=False):
+def add_bookmark(picture_id, comment='', tag='', account=None, password=None, cookies_dict=None, token_str=None,
+                 return_auth_info=False):
     try:
         comment, tag = str(comment), str(tag)  # Detect whether tags and comments are strings.
     except Exception as e:
         logging.error(e)
         comment = tag = ''  # If the conversion fails, it is '' by default.
     finally:
-        x = init_class(PixivOperatePicture, account, password, picture_id=picture_id)  # 使用操作图片类
+        x = init_class(PixivOperatePicture, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
+                       token_str=token_str)  # 使用操作图片类
         return_dict = {'status': x.bookmark_add(comment, tag)}
         if return_auth_info:
             return_dict['auth_info'] = {'cookies': json.dumps(x.get_cookies_dict()), 'token': x.get_token()}
@@ -112,7 +119,8 @@ def add_bookmark(picture_id, comment='', tag='', account=None, password=None, re
 
 
 @timethis
-def get_painter_id(picture_id=None, resp=None, account=None, password=None, return_auth_info=False):
+def get_painter_id(picture_id=None, resp=None, account=None, password=None, cookies_dict=None, token_str=None,
+                   return_auth_info=False):
     """
     Only get painter id via picture id or picture detail page.
 
@@ -126,10 +134,11 @@ def get_painter_id(picture_id=None, resp=None, account=None, password=None, retu
         raise ProgrammingError('参数不够...')
     else:
         if resp is not None:
-            x = init_class(PixivPainterInfo, account, password)
+            x = init_class(PixivPainterInfo, account, password, cookies_dict=cookies_dict, token_str=token_str)
             painter_id = x.get_painter_id_from_work_detail_page(resp=resp)
         else:  # picture_id is not None
-            x = init_class(PixivPainterInfo, account, password, picture_id=picture_id)
+            x = init_class(PixivPainterInfo, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
+                           token_str=token_str)
             painter_id = x.get_painter_id_from_work_detail_page()
 
         return_dict = {'user_id': painter_id}
@@ -139,8 +148,10 @@ def get_painter_id(picture_id=None, resp=None, account=None, password=None, retu
 
 
 @timethis
-def get_painter_info(painter_id=None, picture_id=None, account=None, password=None, return_auth_info=False):
-    x = init_class(PixivPainterInfo, account, password, painter_id=painter_id, picture_id=picture_id)
+def get_painter_info(painter_id=None, picture_id=None, account=None, password=None, cookies_dict=None, token_str=None,
+                     return_auth_info=False):
+    x = init_class(PixivPainterInfo, account, password, painter_id=painter_id, picture_id=picture_id,
+                   cookies_dict=cookies_dict, token_str=token_str)
     # use painter information class.
     if painter_id is not None or picture_id is not None:
         if painter_id is None:
@@ -159,20 +170,24 @@ def get_painter_info(painter_id=None, picture_id=None, account=None, password=No
 # 的必要，拆开来一样可以用，不知道为什么搞了个这么没用的接口
 # 该接口暂时废弃，不再更新
 @timethis
-def get_all_picture_of_painter(painter_id=None, picture_id=None, account=None, password=None, return_auth_info=False):
+def get_all_picture_of_painter(painter_id=None, picture_id=None, account=None, cookies_dict=None, token_str=None,
+                               password=None, return_auth_info=False):
     if painter_id is not None or picture_id is not None:
         if painter_id is None:
-            x = init_class(PixivPainterInfo, account, password, picture_id=picture_id)
+            x = init_class(PixivPainterInfo, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
+                           token_str=token_str)
             # get painter id via picture id.
             painter_id = x.get_painter_id_from_work_detail_page()
-        x = init_class(PixivAllPictureOfPainter, account, password, painter_id=painter_id)
+        x = init_class(PixivAllPictureOfPainter, account, password, painter_id=painter_id, cookies_dict=cookies_dict,
+                       token_str=token_str)
         x.get_work_of_painter()  # download all picture of the painter.
     else:
         raise ProgrammingError('painter id and picture id have at least one.')
 
 
 @timethis
-def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None, return_auth_info=False):
+def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None, cookies_dict=None, token_str=None,
+                  return_auth_info=False):
     """
     Get all the bookmarks of a specified user.
 
@@ -194,9 +209,11 @@ def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None,
 
     if painter_id is not None or picture_id is not None:
         if painter_id is None:
-            x = init_class(PixivPainterInfo, account, password, picture_id=picture_id)
+            x = init_class(PixivPainterInfo, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
+                           token_str=token_str)
             painter_id = x.get_painter_id_from_work_detail_page()
-        y = init_class(PixivBookmark, account, password, painter_id=painter_id)
+        y = init_class(PixivBookmark, account, password, painter_id=painter_id, cookies_dict=cookies_dict,
+                       token_str=token_str)
         return_dict = {'bookmark_info': y.get_bookmark_info()}  # get all bookmarks.
         if return_auth_info:
             return_dict['auth_info'] = {'cookies': json.dumps(y.get_cookies_dict()), 'token': y.get_token()}

@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class Pixiv(requests.Session):  # Just achieve login function
-    def __init__(self, save_cookies_and_token=True, cookies_dict=None, token_str=''):
+    def __init__(self, save_cookies_and_token=True, cookies_dict=None, token_str=None):
         """
         :param save_cookies_and_token: Save cookies
         :param cookies_dict:
@@ -30,7 +30,7 @@ class Pixiv(requests.Session):  # Just achieve login function
         self.save_cookies_and_token = save_cookies_and_token
         self.__form_data = form_data
         self.headers.update({'User-Agent': User_Agent})
-        if token_str:
+        if token_str is not None:
             self.token = token_str
         else:
             try:
@@ -143,7 +143,7 @@ class Pixiv(requests.Session):  # Just achieve login function
 
 
 class PixivDownload(Pixiv):  # pure download a item
-    def __init__(self, picture_id, save_cookies_and_token=True, cookies_dict=None, token_str=''):
+    def __init__(self, picture_id, save_cookies_and_token=True, cookies_dict=None, token_str=None):
         super(PixivDownload, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.picture_id = picture_id
         self.resp = None
@@ -345,7 +345,7 @@ class PixivDownload(Pixiv):  # pure download a item
 
 
 class PixivPictureInfo(Pixiv):  # deal with specific picture information
-    def __init__(self, picture_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=''):
+    def __init__(self, picture_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
         super(PixivPictureInfo, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.picture_id = picture_id
 
@@ -393,7 +393,7 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
 
 
 class PixivOperatePicture(Pixiv):
-    def __init__(self, picture_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=''):
+    def __init__(self, picture_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
         super(PixivOperatePicture, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.picture_id = picture_id
         self.__bookmark_form_data = bookmark_add_form_data
@@ -422,7 +422,7 @@ class PixivOperatePicture(Pixiv):
 
 
 class PixivPainterInfo(Pixiv):  # get painter's personal information.
-    def __init__(self, painter_id=None, picture_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=''):
+    def __init__(self, painter_id=None, picture_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
         super(PixivPainterInfo, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.painter_id = painter_id
         self.picture_id = picture_id
@@ -471,7 +471,7 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
 
 
 class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific artist.
-    def __init__(self, painter_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=''):
+    def __init__(self, painter_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
         super(PixivAllPictureOfPainter, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.picture_num = None
         self.picture_deque = deque()
@@ -595,7 +595,7 @@ def get_page_num(cls):
         setattr(cls, 'picture_num', picture_num)
 
 class PixivBookmark(Pixiv):
-    def __init__(self, painter_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=''):
+    def __init__(self, painter_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
         super(PixivBookmark, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.painter_id = painter_id if painter_id else self.get_my_id()  # 默认为自己的ID
         self.main_page = 'https://www.pixiv.net/bookmark.php?id={}&rest=show'.format(self.painter_id)
@@ -660,7 +660,7 @@ class PixivBookmark(Pixiv):
 
 
 class PixivBase(Pixiv):
-    def __init__(self, save_cookies_and_token=True, cookies_dict=None, token_str=''):
+    def __init__(self, save_cookies_and_token=True, cookies_dict=None, token_str=None):
         super(PixivBase, self).__init__(save_cookies_and_token, cookies_dict, token_str)
 
 
