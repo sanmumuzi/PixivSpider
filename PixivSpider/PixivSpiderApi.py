@@ -186,7 +186,7 @@ def get_all_picture_of_painter(painter_id=None, picture_id=None, account=None, c
 
 
 @timethis
-def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None, cookies_dict=None, token_str=None,
+def get_bookmarks(painter_id=None, picture_id=None, page_num=None, account=None, password=None, cookies_dict=None, token_str=None,
                   return_auth_info=False):
     """
     Get all the bookmarks of a specified user.
@@ -210,10 +210,10 @@ def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None,
     if painter_id is not None or picture_id is not None:
         if painter_id is None:
             x = init_class(PixivPainterInfo, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
-                           token_str=token_str)
+                           token_str=token_str, page_num=page_num)
             painter_id = x.get_painter_id_from_work_detail_page()
         y = init_class(PixivBookmark, account, password, painter_id=painter_id, cookies_dict=cookies_dict,
-                       token_str=token_str)
+                       token_str=token_str, page_num=page_num)
         return_dict = {'bookmark_info': y.get_bookmark_info()}  # get all bookmarks.
         if return_auth_info:
             return_dict['auth_info'] = {'cookies': json.dumps(y.get_cookies_dict()), 'token': y.get_token()}
@@ -230,9 +230,10 @@ if __name__ == '__main__':
     # get_all_picture_of_painter(picture_id=58501385)
     # print(get_a_picture.__module__, get_a_picture.__class__, get_a_picture.__name__)
     # x = get_bookmarks(painter_id=1980643)
-    x = get_a_picture(picture_id=68698234, return_auth_info=True)
+    # x = get_a_picture(picture_id=68698234, cookies_dict=cookies_dict, return_auth_info=True)
     # from pprint import pprint
     # pprint(x)
-    t = json.loads(x['auth_info']['cookies'])
-    print(t)
+    # t = json.loads(x['auth_info']['cookies'])
+    # print(t)
     # 仰望高端操作，看看能不能把测试写进注释里
+    pass

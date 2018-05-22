@@ -595,19 +595,20 @@ def get_page_num(cls):
         setattr(cls, 'picture_num', picture_num)
 
 class PixivBookmark(Pixiv):
-    def __init__(self, painter_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
+    def __init__(self, painter_id=None, page_num=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
         super(PixivBookmark, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.painter_id = painter_id if painter_id else self.get_my_id()  # 默认为自己的ID
         self.main_page = 'https://www.pixiv.net/bookmark.php?id={}&rest=show'.format(self.painter_id)
         self.picture_num = 0
-        self.page_num = 0
+        self.page_num = page_num
         self.picture_deque = deque()  # 存储所有书签信息
 
     def get_html(self):  # a[class="bookmark-count _ui-tooltip"]  # ???喵喵喵???
         r = self.get(self.main_page)  # 要不要禁止重定向
 
     def get_bookmark_info(self):  # 其实 p=1 这个参数可以传，不像作品主页一样会报错，所以这里可以简化代码
-        get_page_num(self)  # 动态增加属性: 1. self.page_num 2. self.picture_num
+        if self.page_num is None:
+            get_page_num(self)  # 动态增加属性: 1. self.page_num 2. self.picture_num
         if self.page_num >= 1:
             resp_text = self.get(self.main_page).text
             selector = etree.HTML(resp_text).xpath('//ul[@class="_image-items js-legacy-mark-unmark-list"]')[0]
