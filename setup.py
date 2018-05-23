@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='PixivSpider',
-    version='0.2.16',
+    version='0.2.17',
     description='Get picture files and related information of pixiv.',
     author='sanmumuzi',
     author_email='san332627946@gmail.com',

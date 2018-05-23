@@ -186,8 +186,8 @@ def get_all_picture_of_painter(painter_id=None, picture_id=None, account=None, c
 
 
 @timethis
-def get_bookmarks(painter_id=None, picture_id=None, page_num=None, account=None, password=None, cookies_dict=None, token_str=None,
-                  return_auth_info=False):
+def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None, cookies_dict=None,
+                  token_str=None, return_auth_info=False):
     """
     Get all the bookmarks of a specified user.
 
@@ -210,10 +210,10 @@ def get_bookmarks(painter_id=None, picture_id=None, page_num=None, account=None,
     if painter_id is not None or picture_id is not None:
         if painter_id is None:
             x = init_class(PixivPainterInfo, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
-                           token_str=token_str, page_num=page_num)
+                           token_str=token_str)
             painter_id = x.get_painter_id_from_work_detail_page()
         y = init_class(PixivBookmark, account, password, painter_id=painter_id, cookies_dict=cookies_dict,
-                       token_str=token_str, page_num=page_num)
+                       token_str=token_str)
         return_dict = {'bookmark_info': y.get_bookmark_info()}  # get all bookmarks.
         if return_auth_info:
             return_dict['auth_info'] = {'cookies': json.dumps(y.get_cookies_dict()), 'token': y.get_token()}
