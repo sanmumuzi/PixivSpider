@@ -642,8 +642,8 @@ class PixivBookmark(Pixiv):
             if title != '-----':  # 非公开或者删除，貌似有几率误伤，如果把作品名起成 ------
                 base_selector = li.xpath('a/div[@class="_layout-thumbnail"]')[0]
                 tags = base_selector.xpath('img/@data-tags')[0]
-                picture_id = base_selector.xpath('img/@data-id')[0]
-                painter_id = li.xpath('a[@class="user ui-profile-popup"]/@data-user_id')[0]
+                picture_id = int(base_selector.xpath('img/@data-id')[0])
+                painter_id = int(li.xpath('a[@class="user ui-profile-popup"]/@data-user_id')[0])
                 painter_name = li.xpath('a[@class="user ui-profile-popup"]/@data-user_name')[0]
                 mark_num = li.xpath('ul[@class="count-list"]/li/a[@class="bookmark-count _ui-tooltip"]/text()')[0]
                 temp_data_list.append((title, tags, picture_id, painter_id, painter_name, mark_num))
