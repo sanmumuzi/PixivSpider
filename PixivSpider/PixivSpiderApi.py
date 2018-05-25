@@ -68,7 +68,7 @@ def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None,
         print('Download failed: {}...'.format(picture_id))
     resp_text = x.get_resp_text()  # 只是为了能够减少访问次数，可用于其他功能
 
-    return_dict = {'illust_info': [x.picture_base_info, save_path_list, resp_text]}
+    return_dict = {'illust_info': [x.picture_base_info, save_path_list, resp_text]}  # 这个接口就是屎
     if return_auth_info:
         return_dict['auth_info'] = {'cookies': json.dumps(x.get_cookies_dict()), 'token': x.get_token()}
     return return_dict

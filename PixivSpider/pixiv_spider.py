@@ -151,8 +151,7 @@ class PixivDownload(Pixiv):  # pure download a item
 
     def get_detail_page_resp(self):
         resp = self.get(picture_detail_page_mode.format(picture_id=self.picture_id))
-        print(picture_detail_page_mode.format(picture_id=self.picture_id))
-        print(resp.status_code)
+        logging.debug(picture_detail_page_mode.format(picture_id=self.picture_id))
         return resp
 
     def get_img_data(self, picture_id=None, date=None, p=None, file_type=None, img_url=None):
@@ -259,10 +258,7 @@ class PixivDownload(Pixiv):  # pure download a item
             resp = self.get_img_data(picture_id=self.picture_id, img_url=original_image_url)
             if resp is not None:
                 self.__picture_base_info = self.split_info(original_image_url)
-                # Abandoned!
-                # add painter_id to info list, just for compatibility and interface.
-                # self.__picture_base_info.insert(1, None)
-                illust_base_info_dict = self.split_info(original_image_url)
+                illust_base_info_dict = self.__picture_base_info  # temporary shallow copy ?
                 picture_id, p, date, file_type = illust_base_info_dict['id'], illust_base_info_dict['p'], \
                                                  illust_base_info_dict['date'], illust_base_info_dict['type']
                 save_path = self._save_img_file(filename=self._get_complete_filename(picture_id, p, file_type),
@@ -295,8 +291,7 @@ class PixivDownload(Pixiv):  # pure download a item
         date = re_tuple.date.findall(url)[0]
         file_type = url.split('.')[-1]
         logging.debug((picture_id, p, date, file_type))
-        # return picture_id, p, date, file_type  # return four elements tuple
-        return {'id': picture_id, 'p': p, 'date': date, 'type': file_type, 'user_id': None}
+        return {'id': picture_id, 'p': p, 'date': date, 'type': file_type}
 
     @staticmethod
     def _get_real_url(picture_id, date, p, file_type):
