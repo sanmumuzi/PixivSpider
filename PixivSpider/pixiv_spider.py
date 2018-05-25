@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 import json
 import logging
-import sys
 import pickle
+import sys
 from collections import deque
 from datetime import datetime
 # from http import cookiejar
@@ -241,7 +241,8 @@ class PixivDownload(Pixiv):  # pure download a item
 
         for p in operate_list:
             picture_binary_data, illust_base_info_dict = self._get_one_picture_part(picture_id, p)
-            p, date, file_type = illust_base_info_dict['p'], illust_base_info_dict['date'], illust_base_info_dict['type']
+            p, date, file_type = illust_base_info_dict['p'], illust_base_info_dict['date'], illust_base_info_dict[
+                'type']
             if picture_binary_data is not None:
                 save_path = self._save_img_file(filename=self._get_complete_filename(picture_id, p, file_type),
                                                 img_data=picture_binary_data,
@@ -350,46 +351,65 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
         self.picture_id = picture_id
 
     def get_picture_info(self, resp=None):
-        info_list = []
+        """
+        Get illust info.
+        :param resp: str: html text about illust detail page
+            (https://www.pixiv.net/member_illust.php?mode=medium&illust_id={picture_id})
+        :return: dict: illust information is consist of illust_id, title, introduction, bookmark_num
+        """
         if resp is None:
             r = self.get(picture_detail_page_mode.format(picture_id=self.picture_id))
             if r.status_code == 200:
                 resp = r.text
             else:
-                print('访问图片具体页面失败:{}'.format(self.picture_id))
-                return info_list  # 如果访问失败，则返回一个空列表
-        info_list = self._parse_picture_html(resp)
-        info_list.insert(0, self.picture_id)
-        info_list.append(None)  # already add to bookMark.
-        return info_list
+                logging.error('访问图片具体页面失败:{}'.format(self.picture_id))
+                return {}  # if failure, return {}.
+        illust_info_dict = self._parse_picture_html(resp)
+        illust_info_dict['illust_id'] = self.picture_id
+        return illust_info_dict
 
     def _parse_picture_html(self, html_text):
-        data_list = []
+        illust_info_dict = {}
         selector = etree.HTML(html_text)
         try:
-            section = selector.xpath('//section[@class="work-info"]')[0]
+            work_info_section = selector.xpath('//section[@class="work-info"]')[0]
+            work_tags_section = selector.xpath('//section[@class="work-tags"]')[0]
         except IndexError:
             print('Get work_info section failure.')
             raise
         else:
-            data_list.append(self._parse_work_title(section))
-            data_list.append(self._parse_work_introduction(section))
-        return data_list
+            illust_info_dict['title'] = self._parse_illust_title(work_info_section)
+            illust_info_dict['introduction'] = self._parse_illust_introduction(work_info_section)
+            illust_info_dict['bookmark_num'] = self._parse_illust_bookmark(selector=selector)
+            illust_info_dict['tags'] = self._parse_illust_tags(work_tags_section)
+        return illust_info_dict
 
     @staticmethod
-    def _parse_work_title(section):
+    def _parse_illust_title(section):
         title = section.xpath('h1[@class="title"]/text()')[0]
         return title
 
     @staticmethod
-    def _parse_work_introduction(section):
-        introduction = None
+    def _parse_illust_introduction(section):
         try:
             introduction = section.xpath('//p[@class="caption"]')[0].xpath('string(.)').strip()
         except IndexError:
-            pass
-        finally:
-            return introduction
+            introduction = None  # if illust don't have introduction, introduction is None.
+        return introduction  # Should not write finally statement because it will hide Error.
+
+    @staticmethod
+    def _parse_illust_tags(section):
+        tag_list = section.xpath('//a[@data-click-category="illust-tag-on-member-illust-medium"]/text()')
+        # I think it won't throw any Error.
+        return tag_list  # if illust don't have tag, tag_list is [].
+
+    @staticmethod
+    def _parse_illust_bookmark(selector):  # if don't added to bookmark, bookmark_num is None.
+        try:
+            bookmark_num = int(selector.xpath('//a[@class="bookmark-count _ui-tooltip"]/text()')[0])
+        except IndexError:
+            bookmark_num = None
+        return bookmark_num
 
 
 class PixivOperatePicture(Pixiv):
@@ -422,7 +442,8 @@ class PixivOperatePicture(Pixiv):
 
 
 class PixivPainterInfo(Pixiv):  # get painter's personal information.
-    def __init__(self, painter_id=None, picture_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
+    def __init__(self, painter_id=None, picture_id=None, save_cookies_and_token=True, cookies_dict=None,
+                 token_str=None):
         super(PixivPainterInfo, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.painter_id = painter_id
         self.picture_id = picture_id
@@ -594,6 +615,7 @@ def get_page_num(cls):
         setattr(cls, 'page_num', page_num)  # 这样动态添加属性真的好吗？？？
         setattr(cls, 'picture_num', picture_num)
 
+
 class PixivBookmark(Pixiv):
     def __init__(self, painter_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
         super(PixivBookmark, self).__init__(save_cookies_and_token, cookies_dict, token_str)
@@ -645,7 +667,7 @@ class PixivBookmark(Pixiv):
                 picture_id = int(base_selector.xpath('img/@data-id')[0])
                 painter_id = int(li.xpath('a[@class="user ui-profile-popup"]/@data-user_id')[0])
                 painter_name = li.xpath('a[@class="user ui-profile-popup"]/@data-user_name')[0]
-                mark_num = li.xpath('ul[@class="count-list"]/li/a[@class="bookmark-count _ui-tooltip"]/text()')[0]
+                mark_num = int(li.xpath('ul[@class="count-list"]/li/a[@class="bookmark-count _ui-tooltip"]/text()')[0])
                 temp_data_list.append((title, tags, picture_id, painter_id, painter_name, mark_num))
             else:
                 logging.error('非公开或者删除等等导致无法访问...')
@@ -682,6 +704,12 @@ if __name__ == "__main__":
     # x.download_picture()
     # x = PixivRank()
     # x.get_daily_rank('20180101')
+
+    # import json
+    # x = PixivPictureInfo(picture_id=50294727, cookies_dict=cookies, token_str=token_str, save_cookies_and_token=False)
+    # illust_info = x.get_picture_info()
+    # from pprint import pprint
+    # pprint(illust_info)
     pass
 
 # sometimes naive.
