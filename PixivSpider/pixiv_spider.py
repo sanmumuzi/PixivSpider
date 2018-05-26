@@ -308,8 +308,8 @@ class PixivDownload(Pixiv):  # pure download a item
 
     @staticmethod
     def split_info(url):
-        picture_id = re_tuple.picture_id.findall(url)[0]
-        p = re_tuple.p_from_source.findall(url)[0]
+        picture_id = int(re_tuple.picture_id.findall(url)[0])
+        p = int(re_tuple.p_from_source.findall(url)[0])
         date = re_tuple.date.findall(url)[0]
         file_type = url.split('.')[-1]
         logging.debug((picture_id, p, date, file_type))
@@ -372,7 +372,7 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
         Get illust info.
         :param resp: str: html text about illust detail page
             (https://www.pixiv.net/member_illust.php?mode=medium&illust_id={picture_id})
-        :return: dict: illust information is consist of illust_id, title, introduction, bookmark_num, user_id
+        :return: dict: illust information is consist of illust_id, title, introduction, bookmark_num, user_id, user_name
         """
         if resp is None:
             r = self.get(picture_detail_page_mode.format(picture_id=self.picture_id))
@@ -396,6 +396,7 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
             raise
         else:
             illust_info_dict['user_id'] = self._parse_illust_user_id(selector=selector)
+            illust_info_dict['user_name'] = self._parse_illust_user_name(selector=selector)
             illust_info_dict['title'] = self._parse_illust_title(work_info_section)
             illust_info_dict['introduction'] = self._parse_illust_introduction(work_info_section)
             illust_info_dict['bookmark_num'] = self._parse_illust_bookmark(selector=selector)
@@ -406,6 +407,11 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
     def _parse_illust_user_id(selector):
         user_id = int(selector.xpath('//a[@class="user-name"]/@href')[0].split('=')[-1])
         return user_id
+
+    @staticmethod
+    def _parse_illust_user_name(selector):
+        user_name = selector.xpath('//a[@class="user-name"]/text()')[0]
+        return user_name
 
     @staticmethod
     def _parse_illust_title(section):

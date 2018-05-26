@@ -95,7 +95,7 @@ def get_picture_info(picture_id=None, resp: str = None, account=None, password=N
     Get illust information.
     :param resp: str: html text about illust detail page
             (https://www.pixiv.net/member_illust.php?mode=medium&illust_id={picture_id})
-    :return: Dict: illust information is consist of illust_id, title, introduction, bookmark_num, user_id
+    :return: Dict: illust information is consist of illust_id, title, introduction, bookmark_num, user_id, user_name
     """
     x = init_class(PixivPictureInfo, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
                    token_str=token_str)  # 使用图片信息类
