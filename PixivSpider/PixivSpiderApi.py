@@ -50,7 +50,8 @@ def check_login_status(account=None, password=None, enforce=False, cookies_dict=
 
 @timethis
 def get_illust_base_info(picture_id, p=None, account=None, password=None, cookies_dict=None, token_str=None) -> Dict:
-    x = init_class(PixivDownload, account, password, picture_id=picture_id, cookies_dict=cookies_dict, token_str=token_str)
+    x = init_class(PixivDownload, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
+                   token_str=token_str)
     illust_base_info = x.get_illust_base_info()
     resp_text = x.get_resp_text()
     return {'illust_base_info': illust_base_info, 'resp_text': resp_text}
@@ -58,8 +59,13 @@ def get_illust_base_info(picture_id, p=None, account=None, password=None, cookie
 
 @timethis
 def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None, cookies_dict=None, token_str=None,
-                  info_dict=None,
-                  return_auth_info=False):
+                  info_dict=None):
+    """
+    Download illust from pixiv.net.
+    :param dirname: illust saved directory
+    :param info_dict: Dict: download illust directly by using info_dict
+    :return: Dict
+    """
     x = init_class(PixivDownload, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
                    token_str=token_str)  # 使用下载类
     if info_dict is None:
@@ -78,40 +84,26 @@ def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None,
     else:
         logging.error('Download failed: {}...'.format(picture_id))
     resp_text = x.get_resp_text()  # 只是为了能够减少访问次数，可用于其他功能
-
-    return_dict = {'illust_info': [x.picture_base_info, save_path_list, resp_text]}  # 这个接口就是屎
-    if return_auth_info:
-        return_dict['auth_info'] = {'cookies': json.dumps(x.get_cookies_dict()), 'token': x.get_token()}
-    return return_dict
-    # picture base information:
-    # five elements list: picture_id, painter_id, p, date, picture file type
-    # note: painter_id is always None at this version.
-
-
-# @timethis
-# def get_a_illust(illust_id, p=None, account=None, password=None, info_dict=None):
-#     x = init_class(PixivDownload, account, password, picture_id=illust_id)
-#     if info_dict is None:
+    return {'illust_base_info': x.picture_base_info, 'save_path_list': save_path_list, 'resp_text': resp_text}
+    # illust base information:
+    # four elements dict: picture_id, p, date, picture file type
 
 
 @timethis
-def get_picture_info(picture_id=None, resp=None, account=None, password=None, cookies_dict=None, token_str=None,
-                     return_auth_info=False):
+def get_picture_info(picture_id=None, resp: str = None, account=None, password=None, cookies_dict=None, token_str=None):
+    """
+    Get illust information.
+    :param resp: str: html text about illust detail page
+            (https://www.pixiv.net/member_illust.php?mode=medium&illust_id={picture_id})
+    :return: Dict: illust information is consist of illust_id, title, introduction, bookmark_num, user_id
+    """
     x = init_class(PixivPictureInfo, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
                    token_str=token_str)  # 使用图片信息类
-    return_dict = {'illust_info': x.get_picture_info(resp=resp)}
-    # 貌似是优先使用resp,如果没有再使用picture_id
-    if return_auth_info:
-        return_dict['auth_info'] = {'cookies': json.dumps(x.get_cookies_dict()), 'token': x.get_token()}
-    return return_dict
-    # picture information:
-    # four elements list: picture_id, title, introduction, sign of bookmark
-    # note： sign of bookmark is always None at this version.
+    return x.get_picture_info(resp=resp)  # 优先使用resp,如果没有再使用picture_id
 
 
 @timethis
-def add_bookmark(picture_id, comment='', tag='', account=None, password=None, cookies_dict=None, token_str=None,
-                 return_auth_info=False):
+def add_bookmark(picture_id, comment='', tag='', account=None, password=None, cookies_dict=None, token_str=None):
     try:
         comment, tag = str(comment), str(tag)  # Detect whether tags and comments are strings.
     except Exception as e:
@@ -120,18 +112,14 @@ def add_bookmark(picture_id, comment='', tag='', account=None, password=None, co
     finally:
         x = init_class(PixivOperatePicture, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
                        token_str=token_str)  # 使用操作图片类
-        return_dict = {'status': x.bookmark_add(comment, tag)}
-        if return_auth_info:
-            return_dict['auth_info'] = {'cookies': json.dumps(x.get_cookies_dict()), 'token': x.get_token()}
-        return return_dict
+        return x.bookmark_add(comment, tag)
         # return x.bookmark_add(comment, tag)
         # return whether to add a bookmark successfully via http status code.
         # code:200 -> success -> True, code: not 200 -> failure -> False
 
 
 @timethis
-def get_painter_id(picture_id=None, resp=None, account=None, password=None, cookies_dict=None, token_str=None,
-                   return_auth_info=False):
+def get_painter_id(picture_id=None, resp=None, account=None, password=None, cookies_dict=None, token_str=None):
     """
     Only get painter id via picture id or picture detail page.
 
@@ -147,31 +135,30 @@ def get_painter_id(picture_id=None, resp=None, account=None, password=None, cook
         if resp is not None:
             x = init_class(PixivPainterInfo, account, password, cookies_dict=cookies_dict, token_str=token_str)
             painter_id = x.get_painter_id_from_work_detail_page(resp=resp)
-        else:  # picture_id is not None
+        else:
             x = init_class(PixivPainterInfo, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
                            token_str=token_str)
             painter_id = x.get_painter_id_from_work_detail_page()
-
-        return_dict = {'user_id': painter_id}
-        if return_auth_info:
-            return_dict['auth_info'] = {'cookies': json.dumps(x.get_cookies_dict()), 'token': x.get_token()}
-        return return_dict
+        return painter_id
 
 
 @timethis
-def get_painter_info(painter_id=None, picture_id=None, account=None, password=None, cookies_dict=None, token_str=None,
-                     return_auth_info=False):
+def get_painter_info(painter_id=None, picture_id=None, resp=None, account=None, password=None, cookies_dict=None,
+                     token_str=None):
+    """
+    Get user information.
+    :return: Dict: {'user_id': ..., 'Profile': {...}}
+    """
     x = init_class(PixivPainterInfo, account, password, painter_id=painter_id, picture_id=picture_id,
                    cookies_dict=cookies_dict, token_str=token_str)
     # use painter information class.
-    if painter_id is not None or picture_id is not None:
+    if painter_id is not None or picture_id is not None or resp is not None:
+        if resp is not None:
+            x.get_painter_id_from_work_detail_page(resp=resp)
         if painter_id is None:
-            x.get_painter_id_from_work_detail_page()  # get painter id via picture id
-        return_dict = {'user_info': x.get_painter_info()}  # get painter information via painter id
+            x.get_painter_id_from_work_detail_page()  # get painter id via picture id, modify self.painter_id
+        return x.get_painter_info()  # get painter information via painter id
         # The data returned is a dictionary.
-        if return_auth_info:
-            return_dict['auth_info'] = {'cookies': json.dumps(x.get_cookies_dict()), 'token': x.get_token()}
-        return return_dict
     else:
         raise ProgrammingError('painter id and picture id have at least one.')
 
@@ -182,7 +169,7 @@ def get_painter_info(painter_id=None, picture_id=None, account=None, password=No
 # 该接口暂时废弃，不再更新
 @timethis
 def get_all_picture_of_painter(painter_id=None, picture_id=None, account=None, cookies_dict=None, token_str=None,
-                               password=None, return_auth_info=False):
+                               password=None):
     if painter_id is not None or picture_id is not None:
         if painter_id is None:
             x = init_class(PixivPainterInfo, account, password, picture_id=picture_id, cookies_dict=cookies_dict,
@@ -197,8 +184,7 @@ def get_all_picture_of_painter(painter_id=None, picture_id=None, account=None, c
 
 
 @timethis
-def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None, cookies_dict=None,
-                  token_str=None, return_auth_info=False):
+def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None, cookies_dict=None, token_str=None):
     """
     Get all the bookmarks of a specified user.
 
@@ -207,15 +193,8 @@ def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None,
     :param account: Website account of pixiv.net.
     :param password: Website password of pixiv.net.
     :return:
-        A deque consist of many list that consist of
-        picture title, picture tags, picture id, painter id, painter name, marked number.
-        For example:
-
-        deque([('#20170827 フランケンシュタイン',
-              'Fate/Apocrypha フランケンシュタイン(Fate) ふつくしい Fate/Apocrypha10000users入り',
-              '64654006', '21848', 'RA', '16067'), ('EXHIBITION',
-              'DOGS RWBY セブンスドラゴン2020 セブンスドラゴンⅢ キズナイーバー ジョーカー・ゲーム 集合絵 三輪士郎 本家 コラボ',
-              '64584518', '38022', '三輪', '21669')])
+        A generator yield bookmark_list is consist of many bookmark_dict.
+        bookmark_dict: illust_id, illust_title, illust_tags_list, user_id, user_name, bookmark_num.
     """
 
     if painter_id is not None or picture_id is not None:
@@ -225,10 +204,7 @@ def get_bookmarks(painter_id=None, picture_id=None, account=None, password=None,
             painter_id = x.get_painter_id_from_work_detail_page()
         y = init_class(PixivBookmark, account, password, painter_id=painter_id, cookies_dict=cookies_dict,
                        token_str=token_str)
-        return_dict = {'bookmark_info': y.get_bookmark_info()}  # get all bookmarks.
-        if return_auth_info:
-            return_dict['auth_info'] = {'cookies': json.dumps(y.get_cookies_dict()), 'token': y.get_token()}
-        return return_dict
+        return y.get_bookmarks_info()  # return a generator
     else:
         raise ProgrammingError('painter id and picture id have at least one.')
 

@@ -372,7 +372,7 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
         Get illust info.
         :param resp: str: html text about illust detail page
             (https://www.pixiv.net/member_illust.php?mode=medium&illust_id={picture_id})
-        :return: dict: illust information is consist of illust_id, title, introduction, bookmark_num
+        :return: dict: illust information is consist of illust_id, title, introduction, bookmark_num, user_id
         """
         if resp is None:
             r = self.get(picture_detail_page_mode.format(picture_id=self.picture_id))
@@ -392,14 +392,20 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
             work_info_section = selector.xpath('//section[@class="work-info"]')[0]
             work_tags_section = selector.xpath('//section[@class="work-tags"]')[0]
         except IndexError:
-            print('Get work_info section failure.')
+            logging.error('Get work_info section failure.')
             raise
         else:
+            illust_info_dict['user_id'] = self._parse_illust_user_id(selector=selector)
             illust_info_dict['title'] = self._parse_illust_title(work_info_section)
             illust_info_dict['introduction'] = self._parse_illust_introduction(work_info_section)
             illust_info_dict['bookmark_num'] = self._parse_illust_bookmark(selector=selector)
             illust_info_dict['tags'] = self._parse_illust_tags(work_tags_section)
         return illust_info_dict
+
+    @staticmethod
+    def _parse_illust_user_id(selector):
+        user_id = int(selector.xpath('//a[@class="user-name"]/@href')[0].split('=')[-1])
+        return user_id
 
     @staticmethod
     def _parse_illust_title(section):
@@ -464,6 +470,7 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
         super(PixivPainterInfo, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.painter_id = painter_id
         self.picture_id = picture_id
+        self.user_info_dict = {}
 
     # Abandoned, we shouldn't premature optimization!!!
     def get_painter_id_from_work_detail_page(self, resp=None):
@@ -477,10 +484,14 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
         # return self.get_painter_id_info()  # get painter detail info.
 
     def get_painter_info(self):  # main function (DEFAULT: Get information from personal pages)
+        """
+        Get user information.
+        :return: Dict: {'user_id': ..., 'Profile': {...}}
+        """
         r = self.get(personal_info_mode.format(painter_id=self.painter_id))
-        info_dict = self._parse_html(r.text)
-        info_dict['ID'] = self.painter_id
-        return info_dict
+        self.user_info_dict['user_id'] = self.painter_id
+        self._parse_html(r.text)
+        return self.user_info_dict
 
     def _parse_html(self, html_text):  # 用于分析所有table的，现阶段只有profile这个table
         data_dict = {}
@@ -488,11 +499,10 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
         try:
             info_table = selector.xpath('//table[@class="ws_table profile"]')[0]
         except IndexError:
-            print('Get info_table failure.')
+            logging.error('Get info_table failure.')
             raise
         else:
-            data_dict['Profile'] = self._parse_profile(info_table)
-        return data_dict
+            self.user_info_dict['Profile'] = self._parse_profile(info_table)
 
     @staticmethod
     def _parse_profile(info_table):
@@ -645,14 +655,12 @@ class PixivBookmark(Pixiv):
     def get_html(self):  # a[class="bookmark-count _ui-tooltip"]  # ???喵喵喵???
         r = self.get(self.main_page)  # 要不要禁止重定向
 
-    def get_bookmark_info(self):  # 其实 p=1 这个参数可以传，不像作品主页一样会报错，所以这里可以简化代码
+    def get_bookmarks_info(self):  # 其实 p=1 这个参数可以传，不像作品主页一样会报错，所以这里可以简化代码
         get_page_num(self)  # 动态增加属性: 1. self.page_num 2. self.picture_num
         if self.page_num >= 1:
             resp_text = self.get(self.main_page).text
             selector = etree.HTML(resp_text).xpath('//ul[@class="_image-items js-legacy-mark-unmark-list"]')[0]
-            temp_data_list = self._get_each_bookmark_info(selector)
-            # self.picture_deque.extend(temp_data_list)
-            yield temp_data_list
+            yield self._get_each_bookmark_info(selector)
         sign = 1
         if self.page_num >= 2:
             for p in range(2, self.page_num + 1):
@@ -664,28 +672,27 @@ class PixivBookmark(Pixiv):
                     raise
                 else:
                     selector = etree.HTML(resp_text).xpath('//ul[@class="_image-items js-legacy-mark-unmark-list"]')[0]
-                    temp_data_list = self._get_each_bookmark_info(selector)
-                    yield temp_data_list
-                    # self.picture_deque.extend(temp_data_list)
-        # return self.picture_deque  # 将全部数据返回
+                    yield self._get_each_bookmark_info(selector)
 
     @staticmethod
     def _get_each_bookmark_info(selector):
         all_li = selector.xpath('li[@class="image-item"]')
-        temp_data_list = []
+        bookmark_data_list = []
         for li in all_li:
             try:
                 title = li.xpath('a/h1[@class="title"]/text()')[0]
             except IndexError:
                 title = li.xpath('h1[@class="title"]/text()')[0]  # 奇葩：有的错误页面竟然是这个结构
             if title != '-----':  # 非公开或者删除，貌似有几率误伤，如果把作品名起成 ------
+                bookmark_dict = {}
                 base_selector = li.xpath('a/div[@class="_layout-thumbnail"]')[0]
-                tags = base_selector.xpath('img/@data-tags')[0]
-                picture_id = int(base_selector.xpath('img/@data-id')[0])
-                painter_id = int(li.xpath('a[@class="user ui-profile-popup"]/@data-user_id')[0])
-                painter_name = li.xpath('a[@class="user ui-profile-popup"]/@data-user_name')[0]
-                mark_num = int(li.xpath('ul[@class="count-list"]/li/a[@class="bookmark-count _ui-tooltip"]/text()')[0])
-                temp_data_list.append((title, tags, picture_id, painter_id, painter_name, mark_num))
+                bookmark_dict['illust_title'] = title
+                bookmark_dict['illust_tags_list'] = base_selector.xpath('img/@data-tags')[0].strip().split()
+                bookmark_dict['illust_id'] = int(base_selector.xpath('img/@data-id')[0])
+                bookmark_dict['user_id'] = int(li.xpath('a[@class="user ui-profile-popup"]/@data-user_id')[0])
+                bookmark_dict['user_name'] = li.xpath('a[@class="user ui-profile-popup"]/@data-user_name')[0]
+                bookmark_dict['bookmark_num'] = int(li.xpath('ul[@class="count-list"]/li/a[@class="bookmark-count _ui-tooltip"]/text()')[0])
+                bookmark_data_list.append(bookmark_dict)
             else:
                 logging.error('非公开或者删除等等导致无法访问...')
                 # try:  # 其实这里没必要分开。。。。。。而且很明显，分类不只这3中，还有很多看不懂的。GG
@@ -697,7 +704,7 @@ class PixivBookmark(Pixiv):
                 #     except IndexError:
                 #         base_selector = li.xpath('a[@class="work  _work ugoku-illust "]'
                 #                                  '/div[@class="_layout-thumbnail"]')[0]  # 动态图片
-        return temp_data_list  # 这里可以写入 .xlsx 文件，以便后期分析使用
+        return bookmark_data_list  # 这里可以写入 .xlsx 文件，以便后期分析使用
 
 
 class PixivBase(Pixiv):
