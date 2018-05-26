@@ -1,12 +1,13 @@
 # -*- coding:utf-8 -*-
-import json
 import logging
 import pickle
 import sys
+import json
 from collections import deque
 from datetime import datetime
 # from http import cookiejar
 from math import ceil
+from typing import Any, Dict, Tuple
 
 import requests
 from lxml import etree
@@ -21,10 +22,12 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class Pixiv(requests.Session):  # Just achieve login function
-    def __init__(self, save_cookies_and_token=True, cookies_dict=None, token_str=None):
+    def __init__(self, save_cookies_and_token=False, cookies_dict: Dict =None, token_str=None):
         """
-        :param save_cookies_and_token: Save cookies
-        :param cookies_dict:
+        Pixiv base class.
+        :param save_cookies_and_token: if it is True, program will save cookies and token to file.
+        :param cookies_dict: Dict of cookies
+        :param token_str: str of token
         """
         super(Pixiv, self).__init__()
         self.save_cookies_and_token = save_cookies_and_token
@@ -32,7 +35,7 @@ class Pixiv(requests.Session):  # Just achieve login function
         self.headers.update({'User-Agent': User_Agent})
         if token_str is not None:
             self.token = token_str
-        else:
+        else:  # If token_str not exist, try read from the file.
             try:
                 with open(TOKEN_FILE, 'rt') as f:
                     self.token = f.read()
@@ -40,7 +43,7 @@ class Pixiv(requests.Session):  # Just achieve login function
                 self.token = ''
         if cookies_dict is not None:  # self.cookies 默认是 RequestsCookieJar object.
             self.cookies = requests.utils.cookiejar_from_dict(cookies_dict)  # cookiejar转dict， cookies的时间属性什么的都没有了
-        else:
+        else:  # If cookies_dict not exist, try read from the file.
             try:
                 # self.cookies = cookiejar.LWPCookieJar()
                 # self.cookies.load(filename=COOKIE_FILE, ignore_discard=True)  # cookies过期会导致失败
@@ -80,7 +83,7 @@ class Pixiv(requests.Session):  # Just achieve login function
     def get_token(self, enforce_update=False):
         """
         Get token (tt).
-        :param enforce_update:
+        :param enforce_update: Try update token str by using GET method.
         :return: token str
         """
         if not self.token or enforce_update:
@@ -143,11 +146,30 @@ class Pixiv(requests.Session):  # Just achieve login function
 
 
 class PixivDownload(Pixiv):  # pure download a item
-    def __init__(self, picture_id, save_cookies_and_token=True, cookies_dict=None, token_str=None):
+    def __init__(self, picture_id, save_cookies_and_token=False, cookies_dict=None, token_str=None):
         super(PixivDownload, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.picture_id = picture_id
         self.resp = None
         self.__picture_base_info = {}  # Should be picture_id, user, p, date, file_type
+
+    def get_illust_base_info(self) -> Dict[str, Any]:  # 貌似只支持单P
+        """
+        Temporary interface. Get illust basic information.
+        Note: don't download this illust.
+        :return:
+            Dict: {'id': picture_id, 'p': p, 'date': date, 'type': file_type}
+            str: html text of 'https://www.pixiv.net/member_illust.php?mode=medium&illust_id={picture_id}'
+        """
+        if self.resp is None:
+            self.resp = self.get_detail_page_resp()
+        selector = etree.HTML(self.resp.text)
+        try:
+            original_image_url = selector.xpath('//img[@class="original-image"]/@data-src')[0]
+        except IndexError:
+            raise
+        else:
+            self.__picture_base_info = self.split_info(original_image_url)
+            return self.__picture_base_info
 
     def get_detail_page_resp(self):
         resp = self.get(picture_detail_page_mode.format(picture_id=self.picture_id))
@@ -331,9 +353,9 @@ class PixivDownload(Pixiv):  # pure download a item
         try:
             return self.resp.text
         except AttributeError as e:
-            print(e)
-            print('使用了download_picture_directly函数，没有resp')
-            return None
+            logging.debug(e)
+            logging.debug('可能是使用了download_picture_directly函数，没有resp')
+        return None
 
     @property
     def picture_base_info(self):
@@ -341,7 +363,7 @@ class PixivDownload(Pixiv):  # pure download a item
 
 
 class PixivPictureInfo(Pixiv):  # deal with specific picture information
-    def __init__(self, picture_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
+    def __init__(self, picture_id=None, save_cookies_and_token=False, cookies_dict=None, token_str=None):
         super(PixivPictureInfo, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.picture_id = picture_id
 
@@ -408,7 +430,7 @@ class PixivPictureInfo(Pixiv):  # deal with specific picture information
 
 
 class PixivOperatePicture(Pixiv):
-    def __init__(self, picture_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
+    def __init__(self, picture_id=None, save_cookies_and_token=False, cookies_dict=None, token_str=None):
         super(PixivOperatePicture, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.picture_id = picture_id
         self.__bookmark_form_data = bookmark_add_form_data
@@ -437,7 +459,7 @@ class PixivOperatePicture(Pixiv):
 
 
 class PixivPainterInfo(Pixiv):  # get painter's personal information.
-    def __init__(self, painter_id=None, picture_id=None, save_cookies_and_token=True, cookies_dict=None,
+    def __init__(self, painter_id=None, picture_id=None, save_cookies_and_token=False, cookies_dict=None,
                  token_str=None):
         super(PixivPainterInfo, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.painter_id = painter_id
@@ -487,7 +509,7 @@ class PixivPainterInfo(Pixiv):  # get painter's personal information.
 
 
 class PixivAllPictureOfPainter(Pixiv):  # Get all the pictures of a specific artist.
-    def __init__(self, painter_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
+    def __init__(self, painter_id=None, save_cookies_and_token=False, cookies_dict=None, token_str=None):
         super(PixivAllPictureOfPainter, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.picture_num = None
         self.picture_deque = deque()
@@ -612,7 +634,7 @@ def get_page_num(cls):
 
 
 class PixivBookmark(Pixiv):
-    def __init__(self, painter_id=None, save_cookies_and_token=True, cookies_dict=None, token_str=None):
+    def __init__(self, painter_id=None, save_cookies_and_token=False, cookies_dict=None, token_str=None):
         super(PixivBookmark, self).__init__(save_cookies_and_token, cookies_dict, token_str)
         self.painter_id = painter_id if painter_id else self.get_my_id()  # 默认为自己的ID
         self.main_page = 'https://www.pixiv.net/bookmark.php?id={}&rest=show'.format(self.painter_id)
@@ -679,12 +701,12 @@ class PixivBookmark(Pixiv):
 
 
 class PixivBase(Pixiv):
-    def __init__(self, save_cookies_and_token=True, cookies_dict=None, token_str=None):
+    def __init__(self, save_cookies_and_token=False, cookies_dict=None, token_str=None):
         super(PixivBase, self).__init__(save_cookies_and_token, cookies_dict, token_str)
 
 
 if __name__ == "__main__":
-    # x = PixivDownload(picture_id=68698234, save_cookies_and_token=True)
+    # x = PixivDownload(picture_id=68698234, save_cookies_and_token=False)
     # # 仅仅当标志量为True，且调用帐号密码登录时，才会执行保存cookies。
     # x.login()
     # token = x.get_token()
@@ -701,8 +723,8 @@ if __name__ == "__main__":
     # x.get_daily_rank('20180101')
 
     # import json
-    # x = PixivPictureInfo(picture_id=50294727, cookies_dict=cookies, token_str=token_str, save_cookies_and_token=False)
-    # illust_info = x.get_picture_info()
+    # x = PixivDownload(picture_id=50294727, cookies_dict=cookies, token_str=token_str, save_cookies_and_token=False)
+    # illust_info = x.get_illust_base_info()
     # from pprint import pprint
     # pprint(illust_info)
     pass

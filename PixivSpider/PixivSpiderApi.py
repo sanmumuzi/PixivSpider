@@ -4,6 +4,7 @@ import json
 # import sys, os
 # sys.path.insert(0, os.path.abspath(os.pardir))  # only to test.
 import logging
+from typing import Dict
 
 from PixivSpider.base import ProgrammingError
 from PixivSpider.decorators import timethis
@@ -30,19 +31,29 @@ def check_login_status(account=None, password=None, enforce=False, cookies_dict=
     :param account: Website account of pixiv.net.
     :param password: Website password of pixiv.net.
     :param enforce: bool type: Force login with account and password
-    :return: bool type: login successful -> True, login failed -> False
+    :return: Dict type: If login_status is True, return_dict have 'auth_info' key. Otherwise, don't have the key.
     """
     instance = Pixiv(cookies_dict=cookies_dict, token_str=token_str)
     return_dict = {}
     if enforce:
-        return_dict['login_status'] = instance.login_with_account(account,
-                                                                  password)  # Force login with account and password
+        login_status = instance.login_with_account(account, password)  # Force login with account and password
     else:
-        return_dict['login_status'] = instance.login(account, password)  # normal login
-    if return_auth_info:
+        instance.login(account, password)  # normal login. Ignore return value.
+        login_status = instance.already_login()
+    return_dict['login_status'] = login_status
+    if return_auth_info and login_status:  # If login_status is True, return_dict['auth_info'] is invalid.
         return_dict['auth_info'] = {'ps_user_id': instance.get_my_id(),
-                                    'cookies': json.dumps(instance.get_cookies_dict()), 'token': instance.get_token()}
+                                    'cookies': json.dumps(instance.get_cookies_dict()),
+                                    'token': instance.get_token(enforce_update=True)}
     return return_dict
+
+
+@timethis
+def get_illust_base_info(picture_id, p=None, account=None, password=None, cookies_dict=None, token_str=None) -> Dict:
+    x = init_class(PixivDownload, account, password, picture_id=picture_id, cookies_dict=cookies_dict, token_str=token_str)
+    illust_base_info = x.get_illust_base_info()
+    resp_text = x.get_resp_text()
+    return {'illust_base_info': illust_base_info, 'resp_text': resp_text}
 
 
 @timethis
@@ -62,10 +73,10 @@ def get_a_picture(picture_id, p=None, dirname=None, account=None, password=None,
         else:
             save_path_list = x.download_picture_directly(**info_dict)  # 下载图片，获取图片保存路径
     if save_path_list:
-        print('Download successful: {}'.format(picture_id))
-        print('Picture save path: {}'.format(save_path_list))
+        logging.debug('Illust save successful: {}'.format(picture_id))
+        logging.info('Picture save path: {}'.format(save_path_list))
     else:
-        print('Download failed: {}...'.format(picture_id))
+        logging.error('Download failed: {}...'.format(picture_id))
     resp_text = x.get_resp_text()  # 只是为了能够减少访问次数，可用于其他功能
 
     return_dict = {'illust_info': [x.picture_base_info, save_path_list, resp_text]}  # 这个接口就是屎
